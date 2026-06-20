@@ -1,0 +1,5 @@
+# Copy to config.yaml and set your device connection defaults.
+host: 127.0.0.1
+serial: ULM5FFF0EE
+port: 1281      # optional
+timeout: 3.0    # optional

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ultralite-mk5-lib"
+version = "0.1.0"
+description = "WebSocket control library for MOTU UltraLite mk5 / Gen5 devices"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "rich>=13.0",
+    "websocket-client>=1.6.0",
+]
+
+[project.scripts]
+ultralite-mk5 = "ultralite_mk5_lib.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ultralite_mk5_lib*"]
