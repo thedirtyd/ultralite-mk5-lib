@@ -199,7 +199,9 @@ def resolve_entity(key: str) -> EntityRef:
     try:
         return ENTITY_REGISTRY[key]
     except KeyError as exc:
-        raise KeyError(f"unknown entity key {key!r}") from exc
+        raise ValueError(
+            f"unknown entity key {key!r}; run list-entities to see valid keys"
+        ) from exc
 
 
 def display_name(key: str) -> str:

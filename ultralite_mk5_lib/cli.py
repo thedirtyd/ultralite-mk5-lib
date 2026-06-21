@@ -208,10 +208,7 @@ def main(argv: list[str] | None = None) -> int:
         args.timeout = default_timeout()
     try:
         return args.func(args)
-    except UltraLiteMk5Error as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        return 1
-    except ValueError as exc:
+    except (UltraLiteMk5Error, ValueError, KeyError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 

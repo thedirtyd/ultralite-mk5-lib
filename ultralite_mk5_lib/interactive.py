@@ -423,7 +423,7 @@ def run_interactive_loop(session: InteractiveSession) -> int:
 
         try:
             args.func(session, args)
-        except (UltraLiteMk5Error, ValueError) as exc:
+        except (UltraLiteMk5Error, ValueError, KeyError) as exc:
             print(f"Error: {exc}", file=sys.stderr)
 
     session.close()
