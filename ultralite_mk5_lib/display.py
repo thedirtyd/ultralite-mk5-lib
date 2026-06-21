@@ -386,14 +386,21 @@ def run_monitor_meters(device: UltraLiteMk5, *, refresh_hz: float = 12.0) -> Non
     if refresh_hz <= 0:
         raise ValueError(f"refresh_hz must be positive, got {refresh_hz}")
 
-    if not device.state.meters_received:
+    def wait_for_meters() -> None:
+        if device.state.meters_received:
+            return
         print("Waiting for meters...", file=sys.stderr)
         device.state.wait_for(lambda state: state.meters_received, device.timeout)
+
+    wait_for_meters()
 
     interval = 1.0 / refresh_hz
     try:
         with Live(_build_active_meters_panel(device.state.snapshot()), console=_console, screen=False) as live:
             while True:
+                if not device.connected:
+                    device.wait_until_connected()
+                    wait_for_meters()
                 live.update(_build_active_meters_panel(device.state.snapshot()))
                 time.sleep(interval)
     except KeyboardInterrupt:

@@ -73,8 +73,8 @@ flowchart TB
 
 | Module | Responsibility |
 |--------|----------------|
-| `client.py` | `UltraLiteMk5`: connect, background recv thread, outbound commands (sample rate, bus mute, solo). Connect returns immediately; state fills in the background. |
-| `state.py` | `DeviceState`: parses inbound frames into `props` and `meters`. `PROPERTY_TABLE` mirrors CueMix property IDs. `is_ready()` / `wait_until_ready()` for commands that need full mix state. |
+| `client.py` | `UltraLiteMk5`: connect, auto-reconnect, background recv thread, connection callbacks, outbound commands (sample rate, bus mute, solo). Connect returns once the WebSocket is up; state fills in the background. |
+| `state.py` | `DeviceState`: parses inbound frames into `props` and `meters`. `PROPERTY_TABLE` mirrors CueMix property IDs. `reset()` on disconnect. `is_ready()` / `wait_until_ready()` for commands that need full mix state. |
 | `protocol.py` | URL building (`ws://host:1280` direct, `ws://127.0.0.1:1281/<serial>` via local proxy), outbound frame builders. |
 | `buses.py` | Mix **output bus** names and `koBusMute` indices; solo bus resolution. |
 | `mix_buses.py` | Per-bus **mix matrix** (inputs → reverb → host L/R → out), `kiMixFader` / `kiMixMute` indexing. |
@@ -90,8 +90,12 @@ flowchart TB
 ### Connection model
 
 - **Fast connect**: open WebSocket, start recv loop, return without draining the initial property burst.
-- **Outbound-only commands** (`set-mute`, `solo-output-bus`, `set-sample-rate`, `set-level`): send frames immediately; no state wait.
-- **State-heavy commands** (`get-state`, `monitor-meters`): wait for `DeviceState.is_ready()` or `meters_received`, with a stderr notice if needed.
+- **Auto-reconnect** (default `auto_reconnect=True` on `UltraLiteMk5`): when the WebSocket drops, the recv thread calls `DeviceState.reset()`, fires `on_connection_lost` once, and a background thread retries every `reconnect_interval` seconds (default 1.0) until the device is reachable again. On success, `on_connection_restored` fires once and the property burst repopulates state. Pass `auto_reconnect=False` for fail-fast one-shot scripts.
+- **`wait_until_connected()`**: block until connected (forever by default). Used internally by outbound commands when auto-reconnect is enabled.
+- **Interactive CLI**: registers `on_connection_lost` to print one `Waiting for device...` line to stderr; `require_device()` waits instead of raising `NotConnectedError`.
+- **Long-lived integrations** (e.g. Home Assistant): hold one `UltraLiteMk5` with callbacks to mark entities unavailable on disconnect and available after restore; use `state.add_observer()` for property updates; run blocking API calls in a worker thread.
+- **Outbound-only commands** (`set-mute`, `solo-output-bus`, `set-sample-rate`, `set-level`): send frames immediately once connected; block until reconnected when auto-reconnect is on.
+- **State-heavy commands** (`get-state`, `monitor-meters`): wait for `DeviceState.is_ready()` or `meters_received`, with a stderr notice if needed. After reconnect, readiness must be re-established because `reset()` clears cached props.
 
 Assumes device password protection is **disabled** (`fffe 0002 00` on connect). Password auth is not implemented.
 

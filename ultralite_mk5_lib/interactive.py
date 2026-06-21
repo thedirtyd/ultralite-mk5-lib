@@ -45,6 +45,7 @@ class InteractiveSession:
 
     def __init__(self) -> None:
         self.device: UltraLiteMk5 | None = None
+        self._waiting_for_device = False
 
     def open(
         self,
@@ -55,12 +56,26 @@ class InteractiveSession:
         timeout: float,
     ) -> UltraLiteMk5:
         self.close()
+        self._waiting_for_device = False
+
+        def on_connection_lost() -> None:
+            print("\nWaiting for device...", file=sys.stderr, flush=True)
+            self._waiting_for_device = True
+
+        def on_connection_restored() -> None:
+            if self._waiting_for_device:
+                print("Device reconnected.", file=sys.stderr, flush=True)
+                print(PROMPT, end="", file=sys.stderr, flush=True)
+                self._waiting_for_device = False
+
         self.device = UltraLiteMk5(
             host,
             port=port,
             serial=serial,
             timeout=timeout,
             connect=True,
+            on_connection_lost=on_connection_lost,
+            on_connection_restored=on_connection_restored,
         )
         return self.device
 
@@ -70,8 +85,10 @@ class InteractiveSession:
             self.device = None
 
     def require_device(self) -> UltraLiteMk5:
-        if self.device is None or not self.device.connected:
+        if self.device is None:
             raise NotConnectedError("Not connected")
+        if not self.device.connected:
+            self.device.wait_until_connected()
         return self.device
 
     @property

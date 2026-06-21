@@ -265,6 +265,15 @@ class DeviceState:
         with self._lock:
             self._observers.append(callback)
 
+    def reset(self) -> None:
+        """Clear accumulated state after disconnect (mirrors CueMix DatastoreReset)."""
+        with self._lock:
+            self._props.clear()
+            self._meters = [K_MIN_METER_DB] * NUM_METERS
+            self._meters_received = False
+            self._frame_count = 0
+            self._notify_observers()
+
     def apply_frame(self, data: bytes) -> None:
         """Apply one inbound WebSocket payload to live state."""
         if len(data) < 2:

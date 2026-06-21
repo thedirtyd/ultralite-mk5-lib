@@ -44,18 +44,30 @@ class UltraLiteMk5:
         serial: str | None = None,
         timeout: float = 3.0,
         connect: bool = True,
+        auto_reconnect: bool = True,
+        reconnect_interval: float = 1.0,
+        on_connection_lost: Callable[[], None] | None = None,
+        on_connection_restored: Callable[[], None] | None = None,
         on_message: Callable[[bytes], None] | None = None,
     ) -> None:
         self._target = target
         self._port = port
         self._serial = serial
         self._timeout = timeout
+        self.auto_reconnect = auto_reconnect
+        self.reconnect_interval = reconnect_interval
+        self._on_connection_lost = on_connection_lost
+        self._on_connection_restored = on_connection_restored
         self._on_message = on_message
         self.state = DeviceState()
         self._url = build_ws_url(target, port, serial)
         self._ws: websocket.WebSocket | None = None
         self._stop = threading.Event()
+        self._connected_event = threading.Event()
+        self._connect_lock = threading.Lock()
+        self._loss_notified = False
         self._rx_thread: threading.Thread | None = None
+        self._reconnect_thread: threading.Thread | None = None
 
         if connect:
             self.connect()
@@ -77,28 +89,46 @@ class UltraLiteMk5:
         if self.connected:
             return
 
-        ws = websocket.create_connection(self._url, timeout=self._timeout)
-        self._ws = ws
         self._stop.clear()
-        self._rx_thread = threading.Thread(
-            target=self._recv_loop,
-            name="ultralite-mk5-rx",
-            daemon=True,
-        )
-        self._rx_thread.start()
+        if self.auto_reconnect:
+            self._ensure_reconnect_thread()
+            self.wait_until_connected()
+            return
+
+        with self._connect_lock:
+            self._open_socket()
+        self._notify_connection_restored()
 
     def close(self) -> None:
-        """Close WebSocket and stop the receive thread."""
+        """Close WebSocket and stop the receive and reconnect threads."""
         self._stop.set()
-        if self._rx_thread is not None:
-            self._rx_thread.join(timeout=2.0)
-            self._rx_thread = None
+        self._connected_event.set()
 
-        if self._ws is not None:
-            try:
-                self._ws.close()
-            finally:
-                self._ws = None
+        with self._connect_lock:
+            self._teardown_socket()
+
+        if self._reconnect_thread is not None:
+            self._reconnect_thread.join(timeout=2.0)
+            self._reconnect_thread = None
+
+    def wait_until_connected(self, timeout: float | None = None) -> bool:
+        """Block until connected. Returns False on timeout or after close()."""
+        if self.connected:
+            return True
+        if self._stop.is_set():
+            return False
+        if self.auto_reconnect:
+            self._ensure_reconnect_thread()
+
+        if timeout is None:
+            while not self._stop.is_set():
+                if self._connected_event.wait(timeout=0.5):
+                    return self.connected
+            return False
+
+        if not self._connected_event.wait(timeout=timeout):
+            return False
+        return self.connected
 
     def set_sample_rate(self, rate: int) -> None:
         """Set device sample rate in Hz."""
@@ -182,9 +212,104 @@ class UltraLiteMk5:
 
     def _require_connection(self) -> websocket.WebSocket:
         if not self.connected:
-            raise NotConnectedError("Not connected; call connect() first")
+            if self.auto_reconnect:
+                if not self.wait_until_connected():
+                    raise NotConnectedError("Not connected")
+            else:
+                raise NotConnectedError("Not connected; call connect() first")
         assert self._ws is not None
         return self._ws
+
+    def _open_socket(self) -> None:
+        ws = websocket.create_connection(self._url, timeout=self._timeout)
+        self._ws = ws
+        self._rx_thread = threading.Thread(
+            target=self._recv_loop,
+            name="ultralite-mk5-rx",
+            daemon=True,
+        )
+        self._rx_thread.start()
+
+    def _teardown_socket(self, *, from_rx_thread: bool = False) -> None:
+        ws = self._ws
+        self._ws = None
+        if ws is not None:
+            try:
+                ws.close()
+            except Exception:
+                pass
+
+        if from_rx_thread:
+            self._rx_thread = None
+            return
+
+        if self._rx_thread is not None:
+            if self._rx_thread.is_alive():
+                self._rx_thread.join(timeout=2.0)
+            self._rx_thread = None
+
+    def _notify_connection_lost(self) -> None:
+        if self._loss_notified:
+            return
+        self._loss_notified = True
+        self._connected_event.clear()
+        if self._on_connection_lost is not None:
+            try:
+                self._on_connection_lost()
+            except Exception:
+                pass
+
+    def _notify_connection_restored(self) -> None:
+        self._connected_event.set()
+        if not self._loss_notified:
+            return
+        self._loss_notified = False
+        if self._on_connection_restored is not None:
+            try:
+                self._on_connection_restored()
+            except Exception:
+                pass
+
+    def _ensure_reconnect_thread(self) -> None:
+        if self._reconnect_thread is not None and self._reconnect_thread.is_alive():
+            return
+        self._reconnect_thread = threading.Thread(
+            target=self._reconnect_loop,
+            name="ultralite-mk5-reconnect",
+            daemon=True,
+        )
+        self._reconnect_thread.start()
+
+    def _reconnect_loop(self) -> None:
+        while not self._stop.is_set():
+            if self.connected:
+                return
+
+            with self._connect_lock:
+                if self._stop.is_set() or self.connected:
+                    return
+                try:
+                    self._open_socket()
+                except Exception:
+                    pass
+                else:
+                    self._notify_connection_restored()
+                    return
+
+            time.sleep(self.reconnect_interval)
+
+    def _handle_disconnect(self) -> None:
+        with self._connect_lock:
+            if self._ws is None:
+                if self.auto_reconnect and not self._stop.is_set():
+                    self._ensure_reconnect_thread()
+                return
+
+            self._teardown_socket(from_rx_thread=True)
+            self.state.reset()
+            self._notify_connection_lost()
+            if self.auto_reconnect and not self._stop.is_set():
+                self._ensure_reconnect_thread()
 
     def _recv_loop(self) -> None:
         ws = self._ws
@@ -207,6 +332,9 @@ class UltraLiteMk5:
                     pass
 
             self.state.apply_frame(data)
+
+        if not self._stop.is_set():
+            self._handle_disconnect()
 
     def __enter__(self) -> UltraLiteMk5:
         self.connect()
