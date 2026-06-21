@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Literal
 
 from ultralite_mk5_lib.buses import MIX_BUS_MUTE_INDICES, stereo_bus_muted
@@ -34,6 +34,8 @@ BUS_HOST_GAIN_ICH: dict[str, int | None] = {
 
 _SPDIF_NUM_CH = (2, 2, 2, 2, 0, 0)
 _REVERB_NUM_CH = (2, 2, 2, 2, 0, 0)
+# kiMixStereo indices for linkable input pairs (mic through optical/toslink).
+STEREO_CAPABLE_MAX_GAIN_ICH = 17
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,6 +47,52 @@ class MixMatrixColumn:
     kind: ColumnKind
     key: str
     gain_ich: int | None = None
+    stereo_left_ich: int | None = None
+    stereo_label: str | None = None
+
+
+def _make_stereo_label(left: str, right: str) -> str:
+    """Combine left/right labels (e.g. Optical 1 + Optical 2 → Optical 1/2)."""
+    i = 0
+    limit = min(len(left), len(right))
+    while i < limit and left[i] == right[i]:
+        i += 1
+    return f"{left[:i]}{left[i:]}/{right[i:]}"
+
+
+def _is_stereo_capable(col: MixMatrixColumn) -> bool:
+    return (
+        col.kind == "input"
+        and col.gain_ich is not None
+        and col.gain_ich <= STEREO_CAPABLE_MAX_GAIN_ICH
+    )
+
+
+def _apply_stereo_metadata(
+    cols: tuple[MixMatrixColumn, ...],
+) -> tuple[MixMatrixColumn, ...]:
+    """Fill stereo_left_ich and stereo_label for linkable input pairs."""
+    by_ich = {c.gain_ich: c for c in cols if c.gain_ich is not None}
+    updated: list[MixMatrixColumn] = []
+    for col in cols:
+        if not _is_stereo_capable(col):
+            updated.append(col)
+            continue
+        assert col.gain_ich is not None
+        left_ich = col.gain_ich & 0xFE
+        right_col = by_ich.get(left_ich + 1)
+        left_col = by_ich.get(left_ich)
+        stereo_label = None
+        if col.gain_ich == left_ich and right_col is not None and left_col is not None:
+            stereo_label = _make_stereo_label(left_col.label, right_col.label)
+        updated.append(
+            replace(
+                col,
+                stereo_left_ich=left_ich,
+                stereo_label=stereo_label,
+            )
+        )
+    return tuple(updated)
 
 
 def _mix_column(label: str, column_id: str, kind: ColumnKind, gain_ich: int | None = None) -> MixMatrixColumn:
@@ -123,7 +171,7 @@ def _mix_matrix_columns(
     cols.append(_mix_column("Host L", "host-l", "host_l"))
     cols.append(_mix_column("Host R", "host-r", "host_r"))
     cols.append(_mix_column("Out", "bus-out", "out"))
-    return tuple(cols)
+    return _apply_stereo_metadata(tuple(cols))
 
 
 def mix_matrix_columns(
@@ -195,6 +243,31 @@ def _fader_cell(
     return cell
 
 
+def _column_entry(
+    col: MixMatrixColumn,
+    mix_stereo: dict[int, int],
+) -> dict[str, Any]:
+    """Build one matrix column dict including stereo link metadata."""
+    entry: dict[str, Any] = {
+        "id": col.column_id,
+        "label": col.label,
+        "kind": col.kind,
+        "key": col.key,
+    }
+    if col.stereo_left_ich is None:
+        return entry
+
+    entry["stereo_left_ich"] = col.stereo_left_ich
+    linked = bool(mix_stereo.get(col.stereo_left_ich, 0))
+    entry["stereo_linked"] = linked
+    if col.stereo_label is not None:
+        entry["stereo_label"] = col.stereo_label
+    ich = col.gain_ich
+    if ich is not None and ich % 2 == 1 and linked:
+        entry["stereo_hidden"] = True
+    return entry
+
+
 def build_mix_bus_fader_matrix(
     props: dict[str, dict[int, Any]],
     *,
@@ -208,6 +281,7 @@ def build_mix_bus_fader_matrix(
     """
     mix_faders = props.get("mix_fader", {})
     mix_mutes = props.get("mix_mute", {})
+    mix_stereo = props.get("mix_stereo", {})
     bus_faders = props.get("bus_fader", {})
     bus_mute_indices = props.get("bus_mute", {})
 
@@ -216,9 +290,8 @@ def build_mix_bus_fader_matrix(
         optical_input_mode=optical_input_mode,
     )
 
-    columns: list[dict[str, str]] = [
-        {"id": c.column_id, "label": c.label, "kind": c.kind, "key": c.key}
-        for c in matrix_columns
+    columns: list[dict[str, Any]] = [
+        _column_entry(c, mix_stereo) for c in matrix_columns
     ]
 
     def _gain_at(gain_ich: int | None, gain_och: int) -> float | None:

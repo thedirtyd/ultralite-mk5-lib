@@ -8,9 +8,10 @@ import sys
 import textwrap
 
 from ultralite_mk5_lib.client import UltraLiteMk5
-from ultralite_mk5_lib.entities import ALL_ENTITY_KEYS
+from ultralite_mk5_lib.entities import ALL_ENTITY_KEYS, resolve_entity
 from ultralite_mk5_lib.exceptions import NotConnectedError, UltraLiteMk5Error
 from ultralite_mk5_lib.levels import format_level_summary
+from ultralite_mk5_lib.mix_buses import STEREO_CAPABLE_MAX_GAIN_ICH
 from ultralite_mk5_lib.mutes import DEFAULT_MUTE_VALUE, format_mute_summary
 from ultralite_mk5_lib.protocol import (
     normalize_optical_mode,
@@ -29,6 +30,7 @@ INTERACTIVE_COMMANDS = (
     "set-optical-input-mode",
     "set-optical-output-mode",
     "set-level",
+    "set-channel-mode",
     "set-mute",
     "list-entities",
     "solo-output-bus",
@@ -134,8 +136,26 @@ def run_list_entities() -> None:
 
 
 def run_set_level(device: UltraLiteMk5, key: str, level: str) -> None:
-    command = device.set_level(key, level)
+    normalized = key.strip().upper()
+    ref = resolve_entity(normalized)
+    if ref.kind == "mix_fader" and ref.gain_ich is not None:
+        ich = ref.gain_ich
+        if ich % 2 == 1 and ich <= STEREO_CAPABLE_MAX_GAIN_ICH:
+            mix_stereo = device.state.props.get("mix_stereo", {})
+            if mix_stereo.get(ich & 0xFE, 0):
+                print(
+                    "Warning: channel pair is in stereo mode; "
+                    "R channel level change will have no effect on audio.",
+                    file=sys.stderr,
+                )
+    command = device.set_level(normalized, level)
     print(format_level_summary(command))
+
+
+def run_set_channel_mode(device: UltraLiteMk5, key: str, mode: str) -> None:
+    normalized = key.strip().upper()
+    device.set_channel_stereo_mode(normalized, mode)
+    print(f"Set {normalized} channel pair to {mode.strip().lower()}")
 
 
 def run_get_state(device: UltraLiteMk5, *, json: bool = False) -> None:
@@ -178,6 +198,18 @@ def _add_set_level_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "level",
         help="Level: plain gain (0.75), dB (-6db), or -inf / -infdb",
+    )
+
+
+def _add_set_channel_mode_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "key",
+        help="MIXBUSFADER_* entity key for either L or R of the input pair",
+    )
+    parser.add_argument(
+        "mode",
+        choices=("stereo", "mono"),
+        help="Link pair as stereo or split to mono",
     )
 
 
@@ -237,6 +269,12 @@ def _command_help_lines() -> dict[str, list[str]]:
             "            set-level MIXBUSFADER_MAIN0102_OUT -6db",
             "            set-level VOLUME_MAIN -inf",
             "            set-level INPUTGAIN_MICLINEIN01 12",
+        ],
+        "set-channel-mode": [
+            "set-channel-mode KEY stereo|mono",
+            "  KEY: MIXBUSFADER_* key for either L or R of the input pair",
+            "  Examples: set-channel-mode MIXBUSFADER_MAIN0102_OPTICAL01 stereo",
+            "            set-channel-mode MIXBUSFADER_LINE0506_LINEIN04 mono",
         ],
         "list-entities": [
             "list-entities  (alias: ls)",
@@ -326,6 +364,13 @@ def build_interactive_parser() -> argparse.ArgumentParser:
     set_level = add_command("set-level", help="Set level by entity key")
     _add_set_level_args(set_level)
     set_level.set_defaults(func=_interactive_set_level)
+
+    set_channel_mode = add_command(
+        "set-channel-mode",
+        help="Link or unlink an input pair as stereo/mono",
+    )
+    _add_set_channel_mode_args(set_channel_mode)
+    set_channel_mode.set_defaults(func=_interactive_set_channel_mode)
 
     set_mute = add_command("set-mute", help="Set mute by entity key")
     _add_set_mute_args(set_mute)
@@ -419,6 +464,12 @@ def _interactive_set_optical_output_mode(
 
 def _interactive_set_level(session: InteractiveSession, args: argparse.Namespace) -> None:
     run_set_level(session.require_device(), args.key, args.level)
+
+
+def _interactive_set_channel_mode(
+    session: InteractiveSession, args: argparse.Namespace
+) -> None:
+    run_set_channel_mode(session.require_device(), args.key, args.mode)
 
 
 def _interactive_list_entities(

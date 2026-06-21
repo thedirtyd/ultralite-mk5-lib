@@ -13,6 +13,9 @@ K_SAMPLE_RATE_ID = 10
 # koBusMute in dev.js — id 1028, kTByte, one entry per mix output channel
 K_BUS_MUTE_ID = 1028
 
+# kiMixStereo in dev.js — id 1000, kTByte
+K_MIX_STEREO_ID = 1000
+
 # kiMixFader / koBusFader in dev.js — id 1016 / 1027, kTFloat (8.24)
 K_MIX_FADER_ID = 1016
 K_BUS_FADER_ID = 1027
@@ -171,6 +174,10 @@ def make_float_property(prop_id: int, index: int, gain: float) -> bytes:
 
 def make_mix_fader_frame(index: int, gain: float) -> bytes:
     return make_float_property(K_MIX_FADER_ID, index, gain)
+
+
+def make_mix_stereo_frame(index: int, stereo: bool) -> bytes:
+    return make_byte_property(K_MIX_STEREO_ID, index, 1 if stereo else 0)
 
 
 def make_bus_fader_frame(index: int, gain: float) -> bytes:

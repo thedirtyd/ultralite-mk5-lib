@@ -26,6 +26,7 @@ PROPERTY_TABLE: dict[int, tuple[str, str]] = {
     7: ("output_channel_names", "string"),
     10: ("sample_rate", "int32"),
     11: ("clock_source", "byte"),
+    1000: ("mix_stereo", "byte"),   # kiMixStereo — input channel stereo link
     1016: ("mix_fader", "float"),
     1017: ("mix_pan", "float"),
     1018: ("mix_solo", "byte"),

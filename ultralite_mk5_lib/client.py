@@ -9,8 +9,10 @@ from typing import TYPE_CHECKING
 import websocket
 
 from ultralite_mk5_lib.buses import solo_bus_mute_indices
+from ultralite_mk5_lib.entities import resolve_entity
 from ultralite_mk5_lib.exceptions import NotConnectedError
 from ultralite_mk5_lib.levels import LevelCommand, prepare_level_command
+from ultralite_mk5_lib.mix_buses import STEREO_CAPABLE_MAX_GAIN_ICH
 from ultralite_mk5_lib.mutes import (
     MuteCommand,
     prepare_mute_command,
@@ -23,6 +25,7 @@ from ultralite_mk5_lib.protocol import (
     OPTICAL_OUTPUT_MODE_INDEX,
     build_ws_url,
     make_bus_mute_frame,
+    make_mix_stereo_frame,
     make_optical_mode_frame,
     make_sample_rate_frame,
     parse_optical_mode,
@@ -224,6 +227,38 @@ class UltraLiteMk5:
             command.wire_value,
         )
         return command
+
+    def set_channel_stereo_mode(self, key: str, mode: str) -> None:
+        """
+        Link or unlink an input channel pair (kiMixStereo).
+
+        ``key`` may be either L or R ``MIXBUSFADER_*`` entity key for the pair.
+        ``mode`` is ``stereo`` or ``mono``.
+        """
+        normalized = key.strip().upper()
+        ref = resolve_entity(normalized)
+        if ref.kind != "mix_fader":
+            raise ValueError(
+                f"{normalized!r} is not a mix fader entity; "
+                "use a MIXBUSFADER_* input crosspoint key"
+            )
+        if ref.gain_ich is None or ref.gain_ich > STEREO_CAPABLE_MAX_GAIN_ICH:
+            raise ValueError(
+                f"{normalized!r} is not a stereo-capable input channel"
+            )
+
+        mode_lower = mode.strip().lower()
+        if mode_lower not in ("stereo", "mono"):
+            raise ValueError(f"mode must be 'stereo' or 'mono', got {mode!r}")
+
+        stereo_left_ich = ref.gain_ich & 0xFE
+        stereo = mode_lower == "stereo"
+        ws = self._require_connection()
+        ws.send(
+            make_mix_stereo_frame(stereo_left_ich, stereo),
+            opcode=websocket.ABNF.OPCODE_BINARY,
+        )
+        self.state.set_prop_local("mix_stereo", stereo_left_ich, 1 if stereo else 0)
 
     def wait(self) -> None:
         """Block while the connection is open."""

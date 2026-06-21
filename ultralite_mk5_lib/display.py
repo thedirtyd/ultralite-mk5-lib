@@ -271,7 +271,14 @@ def _build_mix_bus_fader_matrix_table(snap: dict[str, Any]) -> Table:
     columns = matrix.get("columns", [])
     buses = matrix.get("buses", [])
     bus_labels = [_format_bus_column_header(b["name"]) for b in buses]
-    channel_labels = [c["label"] for c in columns]
+    channel_labels = []
+    for col in columns:
+        if col.get("stereo_hidden"):
+            continue
+        label = col["label"]
+        if col.get("stereo_linked") and col.get("stereo_label"):
+            label = col["stereo_label"]
+        channel_labels.append(label)
     if channel_labels:
         name_width = max(len("Channel"), *(len(label) for label in channel_labels))
     else:
@@ -296,6 +303,11 @@ def _build_mix_bus_fader_matrix_table(snap: dict[str, Any]) -> Table:
         )
 
     for col_idx, col in enumerate(columns):
+        if col.get("stereo_hidden"):
+            continue
+        label = col["label"]
+        if col.get("stereo_linked") and col.get("stereo_label"):
+            label = col["stereo_label"]
         bar_cells: list[str] = []
         detail_cells: list[str] = []
         for bus in buses:
@@ -309,7 +321,7 @@ def _build_mix_bus_fader_matrix_table(snap: dict[str, Any]) -> Table:
             bar, detail = _mix_bus_fader_cell(faders[col_idx], bar_width=bar_width)
             bar_cells.append(bar)
             detail_cells.append(detail)
-        table.add_row(col["label"], *bar_cells)
+        table.add_row(label, *bar_cells)
         table.add_row("", *detail_cells)
     return table
 

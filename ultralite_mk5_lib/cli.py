@@ -19,12 +19,14 @@ from ultralite_mk5_lib.interactive import (
     _add_monitor_meters_args,
     _add_set_optical_mode_args,
     _add_solo_output_bus_args,
+    _add_set_channel_mode_args,
     _add_set_level_args,
     _add_set_mute_args,
     _add_set_sample_rate_args,
     run_interactive_loop,
     run_list_entities,
     run_monitor_meters_cmd,
+    run_set_channel_mode,
     run_set_level,
     run_set_mute,
     run_set_optical_input_mode,
@@ -143,6 +145,13 @@ def _cmd_set_level(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_set_channel_mode(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_set_channel_mode(device, args.key, args.mode)
+        print(f" on {device.url}")
+    return 0
+
+
 def _cmd_solo_output_bus(args: argparse.Namespace) -> int:
     with _device_from_args(args) as device:
         run_solo_output_bus(device, args.key)
@@ -191,6 +200,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_set_level_args(set_level)
     set_level.set_defaults(func=_cmd_set_level)
+
+    set_channel_mode = subparsers.add_parser(
+        "set-channel-mode",
+        help="Link or unlink an input pair as stereo/mono",
+    )
+    _add_set_channel_mode_args(set_channel_mode)
+    set_channel_mode.set_defaults(func=_cmd_set_channel_mode)
 
     set_mute = subparsers.add_parser(
         "set-mute",
