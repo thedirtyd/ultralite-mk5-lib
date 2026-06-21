@@ -204,7 +204,7 @@ def _add_set_level_args(parser: argparse.ArgumentParser) -> None:
 def _add_set_channel_mode_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "key",
-        help="MIXBUSFADER_* entity key for either L or R of the input pair",
+        help="MIXINPUT_* (preferred) or MIXBUSFADER_* crosspoint key for L or R of the pair",
     )
     parser.add_argument(
         "mode",
@@ -272,9 +272,11 @@ def _command_help_lines() -> dict[str, list[str]]:
         ],
         "set-channel-mode": [
             "set-channel-mode KEY stereo|mono",
-            "  KEY: MIXBUSFADER_* key for either L or R of the input pair",
-            "  Examples: set-channel-mode MIXBUSFADER_MAIN0102_OPTICAL01 stereo",
-            "            set-channel-mode MIXBUSFADER_LINE0506_LINEIN04 mono",
+            "  KEY: MIXINPUT_* (preferred) or MIXBUSFADER_* crosspoint for L or R of pair",
+            "  Stereo link applies globally across all mix buses.",
+            "  Examples: set-channel-mode MIXINPUT_OPTICAL01 stereo",
+            "            set-channel-mode MIXINPUT_LINEIN04 mono",
+            "            set-channel-mode MIXBUSFADER_MAIN0102_OPTICAL01 stereo",
         ],
         "list-entities": [
             "list-entities  (alias: ls)",

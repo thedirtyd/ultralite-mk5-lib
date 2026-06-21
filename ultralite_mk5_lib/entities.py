@@ -15,6 +15,8 @@ from ultralite_mk5_lib.meters import METER_SLOTS
 from ultralite_mk5_lib.mix_buses import (
     BUS_HOST_GAIN_ICH,
     FULL_MIX_MATRIX_COLUMNS,
+    MIX_INPUT_CHANNELS,
+    STEREO_CAPABLE_MAX_GAIN_ICH,
     mix_fader_index,
 )
 from ultralite_mk5_lib.outputs import MONITOR_TRIM_CHANNELS, OUTPUT_TRIM_CHANNELS
@@ -22,6 +24,7 @@ from ultralite_mk5_lib.outputs import MONITOR_TRIM_CHANNELS, OUTPUT_TRIM_CHANNEL
 EntityKind = Literal[
     "meter",
     "mix_fader",
+    "mix_input",
     "bus_fader",
     "input_gain",
     "output_trim",
@@ -89,6 +92,13 @@ def _build_registry() -> dict[str, EntityRef]:
             registry,
             ch.key,
             EntityRef(kind, ch.index, ch.name),
+        )
+
+    for ch in MIX_INPUT_CHANNELS:
+        _register(
+            registry,
+            ch.key,
+            EntityRef("mix_input", ch.gain_ich, ch.name, gain_ich=ch.gain_ich),
         )
 
     for bus_name, gain_och in MIX_BUS_MUTE_INDICES.items():
@@ -159,6 +169,10 @@ SOLO_OUTPUT_BUS_KEYS: tuple[str, ...] = tuple(
     if ref.kind == "bus_fader" and key != "MIXBUSFADER_REVERB_OUT"
 )
 
+MIX_INPUT_ENTITY_KEYS: tuple[str, ...] = tuple(
+    sorted(ch.key for ch in MIX_INPUT_CHANNELS)
+)
+
 _METER_SLOT_TO_KEY: dict[int, str] = {
     ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "meter"
 }
@@ -175,6 +189,11 @@ _MIX_FADER_TO_KEY: dict[tuple[int, int], str] = {
     (ref.gain_ich, ref.gain_och): key
     for key, ref in ENTITY_REGISTRY.items()
     if ref.kind == "mix_fader" and ref.gain_ich is not None and ref.gain_och is not None
+}
+_MIX_INPUT_GAIN_ICH_TO_KEY: dict[int, str] = {
+    ref.gain_ich: key
+    for key, ref in ENTITY_REGISTRY.items()
+    if ref.kind == "mix_input" and ref.gain_ich is not None
 }
 _BUS_FADER_TO_KEY: dict[int, str] = {
     ref.gain_och: key
@@ -202,6 +221,30 @@ def resolve_entity(key: str) -> EntityRef:
         raise ValueError(
             f"unknown entity key {key!r}; run list-entities to see valid keys"
         ) from exc
+
+
+def resolve_stereo_input_gain_ich(key: str) -> int:
+    """
+    Return mix input row index (gain_ich) for stereo-mode commands.
+
+    Accepts ``MIXINPUT_*`` keys or stereo-capable ``MIXBUSFADER_*`` crosspoints.
+    """
+    normalized = key.strip().upper()
+    ref = resolve_entity(normalized)
+    if ref.kind == "mix_input":
+        assert ref.gain_ich is not None
+        return ref.gain_ich
+    if ref.kind == "mix_fader":
+        if ref.gain_ich is None or ref.gain_ich > STEREO_CAPABLE_MAX_GAIN_ICH:
+            raise ValueError(
+                f"{normalized!r} is not a stereo-capable input channel; "
+                "use MIXINPUT_* or a MIXBUSFADER_* input crosspoint key"
+            )
+        return ref.gain_ich
+    raise ValueError(
+        f"{normalized!r} is not a mix input entity; "
+        "use MIXINPUT_* or a MIXBUSFADER_* input crosspoint key"
+    )
 
 
 def display_name(key: str) -> str:
@@ -260,3 +303,7 @@ def entity_key_for_mix_column(column_key: str, bus_name: str) -> str:
 
 def entity_key_for_mix_fader(bus_name: str, column_key: str) -> str:
     return entity_key_for_mix_column(column_key, bus_name)
+
+
+def entity_key_for_mix_input(gain_ich: int) -> str | None:
+    return _MIX_INPUT_GAIN_ICH_TO_KEY.get(gain_ich)

@@ -11,6 +11,7 @@ from ultralite_mk5_lib.entity_keys import (
     mix_bus_entity_key_part,
     mix_bus_fader_entity_key,
     mix_channel_entity_key_part,
+    mix_input_entity_key,
 )
 from ultralite_mk5_lib.meters import (
     optical_input_meter_count,
@@ -190,6 +191,27 @@ def mix_matrix_columns(
 FULL_MIX_MATRIX_COLUMNS: tuple[MixMatrixColumn, ...] = mix_matrix_columns(
     sample_rate=48000,
     optical_input_mode=0,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class MixInputChannel:
+    """One stereo-capable mix input row (kiMixStereo / global input channel)."""
+
+    name: str
+    gain_ich: int
+    key: str
+
+
+def _mix_input_channel(col: MixMatrixColumn) -> MixInputChannel:
+    assert col.gain_ich is not None
+    return MixInputChannel(col.label, col.gain_ich, mix_input_entity_key(col.label))
+
+
+MIX_INPUT_CHANNELS: tuple[MixInputChannel, ...] = tuple(
+    _mix_input_channel(col)
+    for col in FULL_MIX_MATRIX_COLUMNS
+    if _is_stereo_capable(col)
 )
 
 

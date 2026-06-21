@@ -9,10 +9,7 @@ from typing import TYPE_CHECKING
 import websocket
 
 from ultralite_mk5_lib.buses import solo_bus_mute_indices
-from ultralite_mk5_lib.entities import resolve_entity
-from ultralite_mk5_lib.exceptions import NotConnectedError
-from ultralite_mk5_lib.levels import LevelCommand, prepare_level_command
-from ultralite_mk5_lib.mix_buses import STEREO_CAPABLE_MAX_GAIN_ICH
+from ultralite_mk5_lib.entities import resolve_stereo_input_gain_ich
 from ultralite_mk5_lib.mutes import (
     MuteCommand,
     prepare_mute_command,
@@ -232,26 +229,19 @@ class UltraLiteMk5:
         """
         Link or unlink an input channel pair (kiMixStereo).
 
-        ``key`` may be either L or R ``MIXBUSFADER_*`` entity key for the pair.
+        ``key`` may be a ``MIXINPUT_*`` entity key, or any ``MIXBUSFADER_*``
+        crosspoint key for the L or R channel of the pair. Stereo mode applies
+        globally across all mix buses.
         ``mode`` is ``stereo`` or ``mono``.
         """
         normalized = key.strip().upper()
-        ref = resolve_entity(normalized)
-        if ref.kind != "mix_fader":
-            raise ValueError(
-                f"{normalized!r} is not a mix fader entity; "
-                "use a MIXBUSFADER_* input crosspoint key"
-            )
-        if ref.gain_ich is None or ref.gain_ich > STEREO_CAPABLE_MAX_GAIN_ICH:
-            raise ValueError(
-                f"{normalized!r} is not a stereo-capable input channel"
-            )
+        gain_ich = resolve_stereo_input_gain_ich(normalized)
 
         mode_lower = mode.strip().lower()
         if mode_lower not in ("stereo", "mono"):
             raise ValueError(f"mode must be 'stereo' or 'mono', got {mode!r}")
 
-        stereo_left_ich = ref.gain_ich & 0xFE
+        stereo_left_ich = gain_ich & 0xFE
         stereo = mode_lower == "stereo"
         ws = self._require_connection()
         ws.send(

@@ -4,6 +4,7 @@ from ultralite_mk5_lib.client import UltraLiteMk5
 from ultralite_mk5_lib.entities import (
     ALL_ENTITY_KEYS,
     DISPLAY_NAMES,
+    MIX_INPUT_ENTITY_KEYS,
     SOLO_OUTPUT_BUS_KEYS,
     display_name,
     meter_slot,
@@ -29,6 +30,7 @@ __all__ = [
     "ALL_ENTITY_KEYS",
     "DISPLAY_NAMES",
     "DeviceState",
+    "MIX_INPUT_ENTITY_KEYS",
     "SOLO_OUTPUT_BUS_KEYS",
     "NotConnectedError",
     "PasswordRequiredError",
