@@ -162,6 +162,9 @@ def run_get_state(device: UltraLiteMk5, *, json: bool = False) -> None:
     if not device.state.is_ready():
         print("Waiting for device state...", file=sys.stderr)
         device.state.wait_until_ready(device.timeout)
+    if not device.state.meters_received:
+        print("Waiting for meters...", file=sys.stderr)
+        device.state.wait_for(lambda state: state.meters_received, device.timeout)
     snap = device.state.snapshot()
     if json:
         print(state_report_to_json(snap))
@@ -223,6 +226,14 @@ def _add_set_mute_args(parser: argparse.ArgumentParser) -> None:
         nargs="?",
         default=DEFAULT_MUTE_VALUE,
         help="mute/on/true/1 or unmute/off/false/0 (default: mute)",
+    )
+
+
+def _add_get_state_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output state snapshot as JSON",
     )
 
 
@@ -397,11 +408,7 @@ def build_interactive_parser() -> argparse.ArgumentParser:
         "get-state",
         help="Print current device state from received frames",
     )
-    get_state.add_argument(
-        "--json",
-        action="store_true",
-        help="Output state snapshot as JSON",
-    )
+    _add_get_state_args(get_state)
     get_state.set_defaults(func=_interactive_get_state)
 
     monitor_meters = add_command(

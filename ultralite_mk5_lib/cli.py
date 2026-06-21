@@ -16,6 +16,7 @@ from ultralite_mk5_lib.exceptions import UltraLiteMk5Error
 from ultralite_mk5_lib.levels import fix_set_level_argv
 from ultralite_mk5_lib.interactive import (
     InteractiveSession,
+    _add_get_state_args,
     _add_monitor_meters_args,
     _add_set_optical_mode_args,
     _add_solo_output_bus_args,
@@ -23,6 +24,7 @@ from ultralite_mk5_lib.interactive import (
     _add_set_level_args,
     _add_set_mute_args,
     _add_set_sample_rate_args,
+    run_get_state,
     run_interactive_loop,
     run_list_entities,
     run_monitor_meters_cmd,
@@ -117,6 +119,12 @@ def _cmd_set_optical_output_mode(args: argparse.Namespace) -> int:
     with _device_from_args(args) as device:
         run_set_optical_output_mode(device, args.mode)
         print(f" on {device.url}")
+    return 0
+
+
+def _cmd_get_state(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_get_state(device, json=args.json)
     return 0
 
 
@@ -226,6 +234,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Alias for list-entities",
     )
     ls.set_defaults(func=_cmd_list_entities)
+
+    get_state = subparsers.add_parser(
+        "get-state",
+        help="Print current device state (trims, mix matrix, meters)",
+    )
+    _add_get_state_args(get_state)
+    get_state.set_defaults(func=_cmd_get_state)
 
     monitor_meters = subparsers.add_parser(
         "monitor-meters",

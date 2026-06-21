@@ -89,6 +89,8 @@ ultralite-mk5> exit
 You can also run any command directly without entering interactive mode. Long-running commands such as `monitor-meters` exit on Ctrl+C:
 
 ```bash
+python -m ultralite_mk5_lib get-state
+python -m ultralite_mk5_lib get-state --json
 python -m ultralite_mk5_lib monitor-meters
 python -m ultralite_mk5_lib set-sample-rate --rate 96
 python -m ultralite_mk5_lib set-optical-input-mode adat
