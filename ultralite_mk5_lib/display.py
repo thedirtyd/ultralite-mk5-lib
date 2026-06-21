@@ -312,15 +312,14 @@ def _build_mix_bus_fader_matrix_table(snap: dict[str, Any]) -> Table:
         detail_cells: list[str] = []
         for bus in buses:
             faders = bus.get("faders", [])
-            if col_idx >= len(faders):
-                bar_cells.append(format_fader_bar(None, width=bar_width))
-                detail_cells.append(
-                    _format_fader_detail_cell(None, None, width=bar_width)
-                )
-                continue
-            bar, detail = _mix_bus_fader_cell(faders[col_idx], bar_width=bar_width)
-            bar_cells.append(bar)
-            detail_cells.append(detail)
+            cell = faders[col_idx] if col_idx < len(faders) else {}
+            if cell.get("hidden"):
+                bar_cells.append("")
+                detail_cells.append("")
+            else:
+                bar, detail = _mix_bus_fader_cell(cell, bar_width=bar_width)
+                bar_cells.append(bar)
+                detail_cells.append(detail)
         table.add_row(label, *bar_cells)
         table.add_row("", *detail_cells)
     return table

@@ -111,9 +111,9 @@ Full encoding details live in `cuemix/www/datastore.js` and `dev_common.js`.
 
 ### Mix bus matrix (display / JSON)
 
-Rows = channels (Mic/Line In, S/PDIF, Optical, Reverb, Host L/R, Out). Columns = mix buses. Each cell has `gain`, `db`, and per-channel `mute`. Bus-level `mute` on the Out column is `koBusMute`.
+Rows = channels (Mic/Line In, S/PDIF, Optical, Reverb, host returns, Out). Columns = mix buses. Each cell has `gain`, `db`, and per-channel `mute`. Bus-level `mute` on the Out column is `koBusMute`. Host 1/2 appears on every bus column; Host Phones and Host 3/4 … 9/10 only on their native bus column (blank elsewhere). Stereo-linked pairs collapse to one row (R hidden).
 
-Column order matches CueMix bus strips: inputs → Reverb → Host L → Host R → Out.
+Column order matches CueMix bus strips: inputs → Reverb → host return pairs → Out.
 
 ## Development
 

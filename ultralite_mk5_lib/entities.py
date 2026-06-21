@@ -102,7 +102,6 @@ def _build_registry() -> dict[str, EntityRef]:
         )
 
     for bus_name, gain_och in MIX_BUS_MUTE_INDICES.items():
-        host_ich = BUS_HOST_GAIN_ICH.get(bus_name)
         for col in FULL_MIX_MATRIX_COLUMNS:
             key = mix_bus_fader_entity_key(bus_name, col.label)
             if col.kind == "out":
@@ -111,32 +110,19 @@ def _build_registry() -> dict[str, EntityRef]:
                     key,
                     EntityRef("bus_fader", gain_och, col.label, gain_och=gain_och),
                 )
-            elif col.kind == "host_l":
-                if host_ich is None:
+            elif col.kind == "host":
+                if col.gain_ich is None:
+                    continue
+                if col.native_bus is not None and bus_name != col.native_bus:
                     continue
                 _register(
                     registry,
                     key,
                     EntityRef(
                         "mix_fader",
-                        mix_fader_index(host_ich, gain_och),
+                        mix_fader_index(col.gain_ich, gain_och),
                         col.label,
-                        gain_ich=host_ich,
-                        gain_och=gain_och,
-                    ),
-                )
-            elif col.kind == "host_r":
-                if host_ich is None:
-                    continue
-                host_r = host_ich + 1
-                _register(
-                    registry,
-                    key,
-                    EntityRef(
-                        "mix_fader",
-                        mix_fader_index(host_r, gain_och),
-                        col.label,
-                        gain_ich=host_r,
+                        gain_ich=col.gain_ich,
                         gain_och=gain_och,
                     ),
                 )
@@ -155,6 +141,33 @@ def _build_registry() -> dict[str, EntityRef]:
                         gain_och=gain_och,
                     ),
                 )
+
+    for bus_name, gain_och in MIX_BUS_MUTE_INDICES.items():
+        host_ich = BUS_HOST_GAIN_ICH.get(bus_name)
+        if host_ich is None:
+            continue
+        _register(
+            registry,
+            mix_bus_fader_entity_key(bus_name, "Host L"),
+            EntityRef(
+                "mix_fader",
+                mix_fader_index(host_ich, gain_och),
+                "Host L",
+                gain_ich=host_ich,
+                gain_och=gain_och,
+            ),
+        )
+        _register(
+            registry,
+            mix_bus_fader_entity_key(bus_name, "Host R"),
+            EntityRef(
+                "mix_fader",
+                mix_fader_index(host_ich + 1, gain_och),
+                "Host R",
+                gain_ich=host_ich + 1,
+                gain_och=gain_och,
+            ),
+        )
 
     return registry
 

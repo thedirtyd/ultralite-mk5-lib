@@ -20,7 +20,7 @@ from ultralite_mk5_lib.meters import (
 
 NUM_MIX_INPUTS = 32
 
-ColumnKind = Literal["input", "reverb", "host_l", "host_r", "out"]
+ColumnKind = Literal["input", "reverb", "host", "out"]
 
 # Host-return kiMixFader input rows (mixOutputs iGain + bankChNum) per bus tab.
 BUS_HOST_GAIN_ICH: dict[str, int | None] = {
@@ -33,10 +33,28 @@ BUS_HOST_GAIN_ICH: dict[str, int | None] = {
     "reverb": None,
 }
 
+_HOST_LEFT_ICH_TO_LABEL: dict[int, str] = {
+    18: "Host 1/2",
+    28: "Host Phones",
+    20: "Host 3/4",
+    22: "Host 5/6",
+    24: "Host 7/8",
+    26: "Host 9/10",
+}
+
+_HOST_NATIVE_BUS: dict[int, str | None] = {
+    18: None,
+    20: "line 3-4",
+    22: "line 5-6",
+    24: "line 7-8",
+    26: "line 9-10",
+    28: "phones",
+}
+
 _SPDIF_NUM_CH = (2, 2, 2, 2, 0, 0)
 _REVERB_NUM_CH = (2, 2, 2, 2, 0, 0)
-# kiMixStereo indices for linkable input pairs (mic through optical/toslink).
-STEREO_CAPABLE_MAX_GAIN_ICH = 17
+# kiMixStereo indices for linkable pairs (mic through host returns; reverb excluded).
+STEREO_CAPABLE_MAX_GAIN_ICH = 29
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +66,7 @@ class MixMatrixColumn:
     kind: ColumnKind
     key: str
     gain_ich: int | None = None
+    native_bus: str | None = None
     stereo_left_ich: int | None = None
     stereo_label: str | None = None
 
@@ -63,7 +82,7 @@ def _make_stereo_label(left: str, right: str) -> str:
 
 def _is_stereo_capable(col: MixMatrixColumn) -> bool:
     return (
-        col.kind == "input"
+        col.kind in ("input", "host")
         and col.gain_ich is not None
         and col.gain_ich <= STEREO_CAPABLE_MAX_GAIN_ICH
     )
@@ -96,13 +115,21 @@ def _apply_stereo_metadata(
     return tuple(updated)
 
 
-def _mix_column(label: str, column_id: str, kind: ColumnKind, gain_ich: int | None = None) -> MixMatrixColumn:
+def _mix_column(
+    label: str,
+    column_id: str,
+    kind: ColumnKind,
+    gain_ich: int | None = None,
+    *,
+    native_bus: str | None = None,
+) -> MixMatrixColumn:
     return MixMatrixColumn(
         column_id,
         label,
         kind,
         mix_channel_entity_key_part(label),
         gain_ich,
+        native_bus,
     )
 
 
@@ -169,8 +196,26 @@ def _mix_matrix_columns(
     if _REVERB_NUM_CH[sri] > 0:
         cols.append(_mix_column("Reverb", "reverb", "reverb", 30))
 
-    cols.append(_mix_column("Host L", "host-l", "host_l"))
-    cols.append(_mix_column("Host R", "host-r", "host_r"))
+    for left_ich, label in _HOST_LEFT_ICH_TO_LABEL.items():
+        native = _HOST_NATIVE_BUS[left_ich]
+        cols.append(
+            _mix_column(
+                f"{label} L",
+                f"host-{left_ich}-l",
+                "host",
+                left_ich,
+                native_bus=native,
+            )
+        )
+        cols.append(
+            _mix_column(
+                f"{label} R",
+                f"host-{left_ich}-r",
+                "host",
+                left_ich + 1,
+                native_bus=native,
+            )
+        )
     cols.append(_mix_column("Out", "bus-out", "out"))
     return _apply_stereo_metadata(tuple(cols))
 
@@ -208,10 +253,18 @@ def _mix_input_channel(col: MixMatrixColumn) -> MixInputChannel:
     return MixInputChannel(col.label, col.gain_ich, mix_input_entity_key(col.label))
 
 
-MIX_INPUT_CHANNELS: tuple[MixInputChannel, ...] = tuple(
-    _mix_input_channel(col)
-    for col in FULL_MIX_MATRIX_COLUMNS
-    if _is_stereo_capable(col)
+MIX_HOST_INPUT_CHANNELS: tuple[MixInputChannel, ...] = tuple(
+    MixInputChannel(label, ich, mix_input_entity_key(label))
+    for ich, label in _HOST_LEFT_ICH_TO_LABEL.items()
+)
+
+MIX_INPUT_CHANNELS: tuple[MixInputChannel, ...] = (
+    tuple(
+        _mix_input_channel(col)
+        for col in FULL_MIX_MATRIX_COLUMNS
+        if col.kind == "input" and col.gain_ich is not None
+    )
+    + MIX_HOST_INPUT_CHANNELS
 )
 
 
@@ -276,6 +329,8 @@ def _column_entry(
         "kind": col.kind,
         "key": col.key,
     }
+    if col.native_bus is not None:
+        entry["native_bus"] = col.native_bus
     if col.stereo_left_ich is None:
         return entry
 
@@ -299,7 +354,7 @@ def build_mix_bus_fader_matrix(
     """
     Build mix-bus fader matrix: one row per mix bus tab.
 
-    Column order matches CueMix: inputs, reverb, host L/R, bus out.
+    Column order matches CueMix: inputs, reverb, host returns, bus out.
     """
     mix_faders = props.get("mix_fader", {})
     mix_mutes = props.get("mix_mute", {})
@@ -323,7 +378,6 @@ def build_mix_bus_fader_matrix(
 
     buses: list[dict[str, Any]] = []
     for bus_name, gain_och in MIX_BUS_MUTE_INDICES.items():
-        host_ich = BUS_HOST_GAIN_ICH.get(bus_name)
         faders: list[dict[str, Any]] = []
 
         for col in matrix_columns:
@@ -335,21 +389,17 @@ def build_mix_bus_fader_matrix(
                         muted=_mix_channel_muted(mix_mutes, ich, gain_och),
                     )
                 )
-            elif col.kind == "host_l":
-                faders.append(
-                    _fader_cell(
-                        gain=_gain_at(host_ich, gain_och),
-                        muted=_mix_channel_muted(mix_mutes, host_ich, gain_och),
+            elif col.kind == "host":
+                if col.native_bus is not None and bus_name != col.native_bus:
+                    faders.append({"hidden": True})
+                else:
+                    assert col.gain_ich is not None
+                    faders.append(
+                        _fader_cell(
+                            gain=_gain_at(col.gain_ich, gain_och),
+                            muted=_mix_channel_muted(mix_mutes, col.gain_ich, gain_och),
+                        )
                     )
-                )
-            elif col.kind == "host_r":
-                host_r = None if host_ich is None else host_ich + 1
-                faders.append(
-                    _fader_cell(
-                        gain=_gain_at(host_r, gain_och),
-                        muted=_mix_channel_muted(mix_mutes, host_r, gain_och),
-                    )
-                )
             elif col.kind == "out":
                 bus_mute = stereo_bus_muted(bus_mute_indices, gain_och)
                 faders.append(

@@ -59,6 +59,7 @@ ultralite-mk5> set-level VOLUME_MAIN -48db
 ultralite-mk5> set-level VOLUME_MAIN -inf
 ultralite-mk5> set-level INPUTGAIN_MICLINEIN01 12
 ultralite-mk5> set-channel-mode MIXINPUT_OPTICAL01 stereo
+ultralite-mk5> set-channel-mode MIXINPUT_HOST0102 stereo
 ultralite-mk5> set-mute MIXBUSFADER_MAIN0102_OUT
 ultralite-mk5> set-mute MIXBUSFADER_PHONES_LINEIN03 unmute
 ultralite-mk5> solo-output-bus MIXBUSFADER_MAIN0102_OUT
@@ -78,7 +79,7 @@ ultralite-mk5> exit
 | `set-optical-input-mode MODE` | Optical input: `adat` or `toslink`                            |
 | `set-optical-output-mode MODE`| Optical output: `adat` or `toslink`                           |
 | `set-level KEY LEVEL`         | Set level by entity key (`0.75`, `-6db`, `-inf`, `12`, …) |
-| `set-channel-mode KEY MODE`   | Link/unlink input pair as `stereo` or `mono`              |
+| `set-channel-mode KEY MODE`   | Link/unlink input pair as `stereo` or `mono` (physical inputs and host returns) |
 | `set-mute KEY [VALUE]`        | Mute/unmute by entity key (default VALUE: mute)           |
 | `solo-output-bus KEY`         | Unmute one bus, mute all others (reverb unchanged)        |
 | `help`                        | Command help                                              |

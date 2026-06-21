@@ -276,6 +276,8 @@ def _command_help_lines() -> dict[str, list[str]]:
             "  Stereo link applies globally across all mix buses.",
             "  Examples: set-channel-mode MIXINPUT_OPTICAL01 stereo",
             "            set-channel-mode MIXINPUT_LINEIN04 mono",
+            "            set-channel-mode MIXINPUT_HOST0102 stereo",
+            "            set-channel-mode MIXINPUT_HOST0304 mono",
             "            set-channel-mode MIXBUSFADER_MAIN0102_OPTICAL01 stereo",
         ],
         "list-entities": [
