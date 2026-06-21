@@ -19,9 +19,13 @@ from ultralite_mk5_lib.mutes import (
 )
 from ultralite_mk5_lib.protocol import (
     VALID_SAMPLE_RATES,
+    OPTICAL_INPUT_MODE_INDEX,
+    OPTICAL_OUTPUT_MODE_INDEX,
     build_ws_url,
     make_bus_mute_frame,
+    make_optical_mode_frame,
     make_sample_rate_frame,
+    parse_optical_mode,
 )
 from ultralite_mk5_lib.state import DeviceState
 
@@ -140,6 +144,26 @@ class UltraLiteMk5:
         ws = self._require_connection()
         frame = make_sample_rate_frame(rate)
         ws.send(frame, opcode=websocket.ABNF.OPCODE_BINARY)
+
+    def set_optical_input_mode(self, mode: str) -> None:
+        """Set optical input mode to adat or toslink (kOpticalMode index 0)."""
+        wire = parse_optical_mode(mode)
+        ws = self._require_connection()
+        ws.send(
+            make_optical_mode_frame(OPTICAL_INPUT_MODE_INDEX, wire),
+            opcode=websocket.ABNF.OPCODE_BINARY,
+        )
+        self.state.set_prop_local("optical_mode", OPTICAL_INPUT_MODE_INDEX, wire)
+
+    def set_optical_output_mode(self, mode: str) -> None:
+        """Set optical output mode to adat or toslink (kOpticalMode index 1)."""
+        wire = parse_optical_mode(mode)
+        ws = self._require_connection()
+        ws.send(
+            make_optical_mode_frame(OPTICAL_OUTPUT_MODE_INDEX, wire),
+            opcode=websocket.ABNF.OPCODE_BINARY,
+        )
+        self.state.set_prop_local("optical_mode", OPTICAL_OUTPUT_MODE_INDEX, wire)
 
     def set_bus_mute(self, key: str, muted: bool) -> None:
         """Mute or unmute a mix output bus (koBusMute) by MIXBUSFADER_*_OUT entity key."""

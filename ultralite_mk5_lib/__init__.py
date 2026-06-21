@@ -17,7 +17,13 @@ from ultralite_mk5_lib.exceptions import (
     PasswordRequiredError,
     UltraLiteMk5Error,
 )
-from ultralite_mk5_lib.protocol import VALID_SAMPLE_RATES
+from ultralite_mk5_lib.protocol import (
+    VALID_SAMPLE_RATES,
+    format_optical_mode,
+    optical_input_mode_from_snap,
+    optical_output_mode_from_snap,
+    parse_optical_mode,
+)
 
 __all__ = [
     "ALL_ENTITY_KEYS",
@@ -31,7 +37,11 @@ __all__ = [
     "VALID_SAMPLE_RATES",
     "build_state_report",
     "display_name",
+    "format_optical_mode",
     "meter_slot",
+    "optical_input_mode_from_snap",
+    "optical_output_mode_from_snap",
+    "parse_optical_mode",
     "property_index",
     "resolve_entity",
     "snapshot_to_json",

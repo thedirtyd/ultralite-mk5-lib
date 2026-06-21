@@ -12,7 +12,12 @@ from ultralite_mk5_lib.entities import ALL_ENTITY_KEYS
 from ultralite_mk5_lib.exceptions import NotConnectedError, UltraLiteMk5Error
 from ultralite_mk5_lib.levels import format_level_summary
 from ultralite_mk5_lib.mutes import DEFAULT_MUTE_VALUE, format_mute_summary
-from ultralite_mk5_lib.protocol import parse_sample_rate, sample_rate_choices_text
+from ultralite_mk5_lib.protocol import (
+    normalize_optical_mode,
+    optical_mode_choices_text,
+    parse_sample_rate,
+    sample_rate_choices_text,
+)
 from ultralite_mk5_lib.state import DeviceState
 from ultralite_mk5_lib.display import print_state_snapshot, run_monitor_meters
 from ultralite_mk5_lib.report import state_report_to_json
@@ -21,6 +26,8 @@ PROMPT = "ultralite-mk5> "
 
 INTERACTIVE_COMMANDS = (
     "set-sample-rate",
+    "set-optical-input-mode",
+    "set-optical-output-mode",
     "set-level",
     "set-mute",
     "list-entities",
@@ -101,6 +108,16 @@ def run_set_sample_rate(device: UltraLiteMk5, rate: int) -> None:
     print(f"Set sample rate to {rate} Hz")
 
 
+def run_set_optical_input_mode(device: UltraLiteMk5, mode: str) -> None:
+    device.set_optical_input_mode(mode)
+    print(f"Set optical input mode to {mode}")
+
+
+def run_set_optical_output_mode(device: UltraLiteMk5, mode: str) -> None:
+    device.set_optical_output_mode(mode)
+    print(f"Set optical output mode to {mode}")
+
+
 def run_set_mute(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
     command = device.set_mute(key, value)
     print(format_mute_summary(command))
@@ -142,6 +159,14 @@ def _add_set_sample_rate_args(parser: argparse.ArgumentParser) -> None:
         type=parse_sample_rate,
         required=True,
         help=f"Sample rate ({sample_rate_choices_text()})",
+    )
+
+
+def _add_set_optical_mode_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "mode",
+        type=normalize_optical_mode,
+        help=f"Optical mode ({optical_mode_choices_text()})",
     )
 
 
@@ -192,6 +217,18 @@ def _command_help_lines() -> dict[str, list[str]]:
             f"  RATE: {sample_rate_choices_text()}",
             "  Examples: set-sample-rate --rate 96",
             "            set-sample-rate --rate 96000",
+        ],
+        "set-optical-input-mode": [
+            "set-optical-input-mode MODE",
+            f"  MODE: {optical_mode_choices_text()}",
+            "  Examples: set-optical-input-mode adat",
+            "            set-optical-input-mode toslink",
+        ],
+        "set-optical-output-mode": [
+            "set-optical-output-mode MODE",
+            f"  MODE: {optical_mode_choices_text()}",
+            "  Examples: set-optical-output-mode adat",
+            "            set-optical-output-mode toslink",
         ],
         "set-level": [
             "set-level KEY LEVEL",
@@ -271,6 +308,20 @@ def build_interactive_parser() -> argparse.ArgumentParser:
     set_rate = add_command("set-sample-rate", help="Set sample rate")
     _add_set_sample_rate_args(set_rate)
     set_rate.set_defaults(func=_interactive_set_sample_rate)
+
+    set_optical_input = add_command(
+        "set-optical-input-mode",
+        help="Set optical input mode (ADAT or TOSlink)",
+    )
+    _add_set_optical_mode_args(set_optical_input)
+    set_optical_input.set_defaults(func=_interactive_set_optical_input_mode)
+
+    set_optical_output = add_command(
+        "set-optical-output-mode",
+        help="Set optical output mode (ADAT or TOSlink)",
+    )
+    _add_set_optical_mode_args(set_optical_output)
+    set_optical_output.set_defaults(func=_interactive_set_optical_output_mode)
 
     set_level = add_command("set-level", help="Set level by entity key")
     _add_set_level_args(set_level)
@@ -352,6 +403,18 @@ def _print_command_syntax_help(
 
 def _interactive_set_sample_rate(session: InteractiveSession, args: argparse.Namespace) -> None:
     run_set_sample_rate(session.require_device(), args.rate)
+
+
+def _interactive_set_optical_input_mode(
+    session: InteractiveSession, args: argparse.Namespace
+) -> None:
+    run_set_optical_input_mode(session.require_device(), args.mode)
+
+
+def _interactive_set_optical_output_mode(
+    session: InteractiveSession, args: argparse.Namespace
+) -> None:
+    run_set_optical_output_mode(session.require_device(), args.mode)
 
 
 def _interactive_set_level(session: InteractiveSession, args: argparse.Namespace) -> None:

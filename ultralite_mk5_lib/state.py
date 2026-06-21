@@ -12,6 +12,11 @@ from typing import Any
 from ultralite_mk5_lib.buses import MIX_BUS_MUTE_INDICES, stereo_bus_muted
 from ultralite_mk5_lib.mix_buses import build_mix_bus_fader_matrix
 from ultralite_mk5_lib.outputs import build_output_monitoring
+from ultralite_mk5_lib.protocol import (
+    OPTICAL_INPUT_MODE_INDEX,
+    OPTICAL_OUTPUT_MODE_INDEX,
+    optical_mode_from_props,
+)
 
 # Property id -> (state key, wire type). From dev.js kDevJS.
 PROPERTY_TABLE: dict[int, tuple[str, str]] = {
@@ -260,6 +265,18 @@ class DeviceState:
         with self._lock:
             return self._frame_count
 
+    @property
+    def optical_input_mode(self) -> str | None:
+        """Optical input mode (adat/toslink), or None until received."""
+        with self._lock:
+            return optical_mode_from_props(self._props, OPTICAL_INPUT_MODE_INDEX)
+
+    @property
+    def optical_output_mode(self) -> str | None:
+        """Optical output mode (adat/toslink), or None until received."""
+        with self._lock:
+            return optical_mode_from_props(self._props, OPTICAL_OUTPUT_MODE_INDEX)
+
     def add_observer(self, callback: Callable[[], None]) -> None:
         """Register a callback invoked after every applied frame."""
         with self._lock:
@@ -362,6 +379,14 @@ class DeviceState:
 
             props_copy = {key: dict(indices) for key, indices in self._props.items()}
             optical_input_mode = props_copy.get("optical_mode", {}).get(0)
+            optical_input_mode_name = optical_mode_from_props(
+                props_copy,
+                OPTICAL_INPUT_MODE_INDEX,
+            )
+            optical_output_mode_name = optical_mode_from_props(
+                props_copy,
+                OPTICAL_OUTPUT_MODE_INDEX,
+            )
             mix_bus_fader_matrix = build_mix_bus_fader_matrix(
                 props_copy,
                 sample_rate=sample_rate,
@@ -377,6 +402,8 @@ class DeviceState:
                 "device_name": device_name,
                 "sample_rate": sample_rate,
                 "api_version": api_version,
+                "optical_input_mode": optical_input_mode_name,
+                "optical_output_mode": optical_output_mode_name,
                 "bus_faders": bus_faders,
                 "bus_mutes": bus_mutes,
                 "mix_bus_fader_matrix": mix_bus_fader_matrix,

@@ -17,6 +17,7 @@ from ultralite_mk5_lib.levels import fix_set_level_argv
 from ultralite_mk5_lib.interactive import (
     InteractiveSession,
     _add_monitor_meters_args,
+    _add_set_optical_mode_args,
     _add_solo_output_bus_args,
     _add_set_level_args,
     _add_set_mute_args,
@@ -26,6 +27,8 @@ from ultralite_mk5_lib.interactive import (
     run_monitor_meters_cmd,
     run_set_level,
     run_set_mute,
+    run_set_optical_input_mode,
+    run_set_optical_output_mode,
     run_set_sample_rate,
     run_solo_output_bus,
 )
@@ -101,6 +104,20 @@ def _cmd_set_sample_rate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_set_optical_input_mode(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_set_optical_input_mode(device, args.mode)
+        print(f" on {device.url}")
+    return 0
+
+
+def _cmd_set_optical_output_mode(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_set_optical_output_mode(device, args.mode)
+        print(f" on {device.url}")
+    return 0
+
+
 def _cmd_monitor_meters(args: argparse.Namespace) -> int:
     with _device_from_args(args) as device:
         run_monitor_meters_cmd(device, args.rate)
@@ -153,6 +170,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_set_sample_rate_args(set_rate)
     set_rate.set_defaults(func=_cmd_set_sample_rate)
+
+    set_optical_input = subparsers.add_parser(
+        "set-optical-input-mode",
+        help="Set optical input mode (ADAT or TOSlink)",
+    )
+    _add_set_optical_mode_args(set_optical_input)
+    set_optical_input.set_defaults(func=_cmd_set_optical_input_mode)
+
+    set_optical_output = subparsers.add_parser(
+        "set-optical-output-mode",
+        help="Set optical output mode (ADAT or TOSlink)",
+    )
+    _add_set_optical_mode_args(set_optical_output)
+    set_optical_output.set_defaults(func=_cmd_set_optical_output_mode)
 
     set_level = subparsers.add_parser(
         "set-level",

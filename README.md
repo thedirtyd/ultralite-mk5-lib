@@ -52,6 +52,8 @@ ultralite-mk5> get-state
 ultralite-mk5> get-state --json
 ultralite-mk5> monitor-meters
 ultralite-mk5> set-sample-rate --rate 96
+ultralite-mk5> set-optical-input-mode adat
+ultralite-mk5> set-optical-output-mode toslink
 ultralite-mk5> set-level MIXBUSFADER_MAIN0102_LINEIN03 0.75
 ultralite-mk5> set-level VOLUME_MAIN -48db
 ultralite-mk5> set-level VOLUME_MAIN -inf
@@ -72,6 +74,8 @@ ultralite-mk5> exit
 | `list-entities`               | All entity keys, one per line (no device state required)  |
 | `monitor-meters`              | Live meter levels (Ctrl+C to stop)                        |
 | `set-sample-rate --rate RATE` | 44.1, 48, 88.2, 96, 176.4, 192 kHz (or Hz equivalents)    |
+| `set-optical-input-mode MODE` | Optical input: `adat` or `toslink`                            |
+| `set-optical-output-mode MODE`| Optical output: `adat` or `toslink`                           |
 | `set-level KEY LEVEL`         | Set level by entity key (`0.75`, `-6db`, `-inf`, `12`, …) |
 | `set-mute KEY [VALUE]`        | Mute/unmute by entity key (default VALUE: mute)           |
 | `solo-output-bus KEY`         | Unmute one bus, mute all others (reverb unchanged)        |
@@ -84,6 +88,8 @@ You can also run any command directly without entering interactive mode. Long-ru
 ```bash
 python -m ultralite_mk5_lib monitor-meters
 python -m ultralite_mk5_lib set-sample-rate --rate 96
+python -m ultralite_mk5_lib set-optical-input-mode adat
+python -m ultralite_mk5_lib set-optical-output-mode toslink
 ```
 
 Override config for a single invocation:
@@ -99,10 +105,12 @@ If `ultralite-mk5` is on your PATH after install, you can use that instead of `p
 ## Python API
 
 ```python
-from ultralite_mk5_lib import UltraLiteMk5
+from ultralite_mk5_lib import UltraLiteMk5, build_state_report
 
 with UltraLiteMk5("127.0.0.1", serial="ULM5FFF0EE") as device:
     device.set_sample_rate(96000)
+    device.set_optical_input_mode("adat")
+    device.set_optical_output_mode("toslink")
     device.set_mute("MIXBUSFADER_MAIN0102_OUT")
     device.set_level("MIXBUSFADER_MAIN0102_LINEIN03", "0.75")
     device.set_level("VOLUME_MAIN", "-6db")
@@ -110,7 +118,10 @@ with UltraLiteMk5("127.0.0.1", serial="ULM5FFF0EE") as device:
 
     # Wait for state if you need it
     device.state.wait_until_ready(device.timeout)
-    snap = device.state.snapshot()
+    print(device.state.optical_input_mode)   # "adat" or "toslink"
+    print(device.state.optical_output_mode)
+    report = build_state_report(device.state.snapshot())
+    print(report["device"]["optical_input_mode"])
     print(device.snapshot_json())
 ```
 

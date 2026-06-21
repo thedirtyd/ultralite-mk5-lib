@@ -14,14 +14,15 @@ from ultralite_mk5_lib.outputs import (
     build_monitors_trim,
     build_output_trims,
 )
+from ultralite_mk5_lib.protocol import (
+    optical_input_mode_from_snap,
+    optical_input_mode_wire_from_snap,
+    optical_output_mode_from_snap,
+)
 from ultralite_mk5_lib.state import (
     K_MIN_METER_DB,
     snapshot_to_json,
 )
-
-
-def _optical_input_mode_from_snap(snap: dict[str, Any]) -> int | None:
-    return snap.get("props", {}).get("optical_mode", {}).get(0)
 
 
 def _build_meter_entries(snap: dict[str, Any]) -> list[dict[str, Any]]:
@@ -30,7 +31,7 @@ def _build_meter_entries(snap: dict[str, Any]) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     for entry in iter_visible_meter_slots(
         sample_rate=snap.get("sample_rate"),
-        optical_input_mode=_optical_input_mode_from_snap(snap),
+        optical_input_mode=optical_input_mode_wire_from_snap(snap),
     ):
         slot = entry.slot
         if not meters_received or slot < 0 or slot >= len(meters):
@@ -80,7 +81,7 @@ def build_state_report(snap: dict[str, Any]) -> dict[str, Any]:
         matrix = build_mix_bus_fader_matrix(
             props,
             sample_rate=snap.get("sample_rate"),
-            optical_input_mode=_optical_input_mode_from_snap(snap),
+            optical_input_mode=optical_input_mode_wire_from_snap(snap),
         )
 
     mix_bus_faders: dict[str, Any] = {
@@ -119,6 +120,8 @@ def build_state_report(snap: dict[str, Any]) -> dict[str, Any]:
             "name": snap.get("device_name"),
             "api_version": snap.get("api_version"),
             "sample_rate": snap.get("sample_rate"),
+            "optical_input_mode": optical_input_mode_from_snap(snap),
+            "optical_output_mode": optical_output_mode_from_snap(snap),
             "frame_count": snap.get("frame_count", 0),
         },
         "monitor_trim": monitor_trim,

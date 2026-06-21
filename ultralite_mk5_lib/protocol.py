@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import struct
+from typing import Any
+
+from ultralite_mk5_lib.meters import OPTICAL_MODE_ADAT, OPTICAL_MODE_TOSLINK
 
 # kSampleRate in dev.js — id 10, index 0, kTInt32
 K_SAMPLE_RATE_ID = 10
@@ -22,6 +25,11 @@ K_MAIN_TRIM_ID = 5011
 # kiMixMute / kMuteEnable in dev.js
 K_MIX_MUTE_ID = 1019
 K_MUTE_ENABLE_ID = 5019
+
+# kOpticalMode in dev.js — id 5006, kTByte; [0]=input, [1]=output (ADAT/TOSlink)
+K_OPTICAL_MODE_ID = 5006
+OPTICAL_INPUT_MODE_INDEX = 0
+OPTICAL_OUTPUT_MODE_INDEX = 1
 
 K824_DIVISOR = 0x01000000
 
@@ -49,6 +57,75 @@ def parse_sample_rate(value: str | float | int) -> int:
             f"sample rate must be one of {sample_rate_choices_text()}, got {value!r}"
         )
     return hz
+
+
+_OPTICAL_MODE_NAMES = {
+    OPTICAL_MODE_ADAT: "adat",
+    OPTICAL_MODE_TOSLINK: "toslink",
+}
+
+
+def optical_mode_choices_text() -> str:
+    return "adat, toslink"
+
+
+def parse_optical_mode(value: str) -> int:
+    """Parse optical input/output mode from adat or toslink."""
+    normalized = value.strip().lower()
+    for wire, name in _OPTICAL_MODE_NAMES.items():
+        if normalized == name:
+            return wire
+    raise ValueError(
+        f"optical mode must be one of {optical_mode_choices_text()}, got {value!r}"
+    )
+
+
+def format_optical_mode(mode: int) -> str:
+    """Format wire optical mode value as adat or toslink."""
+    try:
+        return _OPTICAL_MODE_NAMES[mode]
+    except KeyError as exc:
+        raise ValueError(f"unknown optical mode wire value {mode}") from exc
+
+
+def normalize_optical_mode(value: str) -> str:
+    """Parse and return canonical optical mode name (adat or toslink)."""
+    return format_optical_mode(parse_optical_mode(value))
+
+
+def optical_mode_wire_from_props(
+    props: dict[str, dict[int, Any]],
+    index: int,
+) -> int | None:
+    """Return raw kOpticalMode wire value for one index, or None until received."""
+    return props.get("optical_mode", {}).get(index)
+
+
+def optical_mode_from_props(
+    props: dict[str, dict[int, Any]],
+    index: int,
+) -> str | None:
+    """Return adat/toslink for one kOpticalMode index, or None until received."""
+    wire = optical_mode_wire_from_props(props, index)
+    if wire is None:
+        return None
+    return format_optical_mode(wire)
+
+
+def optical_input_mode_wire_from_snap(snap: dict[str, Any]) -> int | None:
+    return optical_mode_wire_from_props(snap.get("props", {}), OPTICAL_INPUT_MODE_INDEX)
+
+
+def optical_output_mode_wire_from_snap(snap: dict[str, Any]) -> int | None:
+    return optical_mode_wire_from_props(snap.get("props", {}), OPTICAL_OUTPUT_MODE_INDEX)
+
+
+def optical_input_mode_from_snap(snap: dict[str, Any]) -> str | None:
+    return optical_mode_from_props(snap.get("props", {}), OPTICAL_INPUT_MODE_INDEX)
+
+
+def optical_output_mode_from_snap(snap: dict[str, Any]) -> str | None:
+    return optical_mode_from_props(snap.get("props", {}), OPTICAL_OUTPUT_MODE_INDEX)
 
 
 PROXY_MESSAGE_ID = 0xFFFE
@@ -114,6 +191,10 @@ def make_main_trim_frame(index: int, value: int) -> bytes:
 
 def make_sample_rate_frame(rate: int) -> bytes:
     return make_int32_property(K_SAMPLE_RATE_ID, 0, rate)
+
+
+def make_optical_mode_frame(index: int, mode: int) -> bytes:
+    return make_byte_property(K_OPTICAL_MODE_ID, index, mode)
 
 
 def make_bus_mute_frame(index: int, muted: bool) -> bytes:

@@ -14,6 +14,11 @@ from rich.text import Text
 from ultralite_mk5_lib.mix_buses import build_mix_bus_fader_matrix, mix_fader_gain_to_db
 from ultralite_mk5_lib.inputs import build_input_gains
 from ultralite_mk5_lib.meters import iter_visible_meter_slots, resolve_meter_slot_name
+from ultralite_mk5_lib.protocol import (
+    optical_input_mode_from_snap,
+    optical_input_mode_wire_from_snap,
+    optical_output_mode_from_snap,
+)
 from ultralite_mk5_lib.outputs import (
     TRIM_MAX_DB,
     TRIM_MIN_DB,
@@ -94,11 +99,6 @@ def _fader_table_reserved(
     return reserve
 
 
-def _optical_input_mode_from_snap(snap: dict[str, Any]) -> int | None:
-    """kOpticalMode index 0 (input); None until received."""
-    return snap.get("props", {}).get("optical_mode", {}).get(0)
-
-
 def _catalog_meter_rows(
     meters: list[float],
     *,
@@ -151,7 +151,7 @@ def _build_active_meters_panel(snap: dict[str, Any]) -> RenderableType:
         snap.get("meters", []),
         meters_received=bool(snap.get("meters_received")),
         sample_rate=snap.get("sample_rate"),
-        optical_input_mode=_optical_input_mode_from_snap(snap),
+        optical_input_mode=optical_input_mode_wire_from_snap(snap),
     )
     return Group(title, _build_meter_table(rows))
 
@@ -265,7 +265,7 @@ def _build_mix_bus_fader_matrix_table(snap: dict[str, Any]) -> Table:
         matrix = build_mix_bus_fader_matrix(
             props,
             sample_rate=snap.get("sample_rate"),
-            optical_input_mode=_optical_input_mode_from_snap(snap),
+            optical_input_mode=optical_input_mode_wire_from_snap(snap),
         )
 
     columns = matrix.get("columns", [])
@@ -369,6 +369,15 @@ def print_state_snapshot(snap: dict[str, Any]) -> None:
         _console.print(f"Sample rate:  {sample_rate} Hz")
     else:
         _console.print("Sample rate:  n/a")
+
+    optical_input = snap.get("optical_input_mode", optical_input_mode_from_snap(snap))
+    optical_output = snap.get("optical_output_mode", optical_output_mode_from_snap(snap))
+    _console.print(
+        f"Optical in:   {optical_input if optical_input is not None else 'n/a'}"
+    )
+    _console.print(
+        f"Optical out:  {optical_output if optical_output is not None else 'n/a'}"
+    )
 
     _console.print()
     _print_monitors_trim_table(snap)
