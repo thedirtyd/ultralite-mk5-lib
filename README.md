@@ -4,7 +4,9 @@ Python library and CLI for controlling MOTU UltraLite mk5 over a WebSocket conne
 
 **Under active development.** Expect bugs, incomplete coverage of device features, and breaking changes.
 
-Tested with UltraLite mk5 firmware 2.0.9+2572 only.
+This project has only been tested with:
+- UltraLite mk5 connected via USB to Windows host.
+- UltraLite mk5 firmware 2.0.9+2572
 
 This project is not affiliated with or endorsed by MOTU. As there is no official public API, this integration is likely to break with firmware updates.
 
