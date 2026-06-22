@@ -10,6 +10,7 @@ import websocket
 
 from ultralite_mk5_lib.buses import solo_bus_mute_indices
 from ultralite_mk5_lib.entities import resolve_stereo_input_gain_ich
+from ultralite_mk5_lib.levels import LevelCommand, prepare_level_command
 from ultralite_mk5_lib.mutes import (
     MuteCommand,
     prepare_mute_command,
