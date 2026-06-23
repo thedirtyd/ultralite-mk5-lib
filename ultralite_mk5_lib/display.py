@@ -13,11 +13,12 @@ from rich.text import Text
 
 from ultralite_mk5_lib.mix_buses import build_mix_bus_fader_matrix, mix_fader_gain_to_db
 from ultralite_mk5_lib.inputs import build_input_gains
-from ultralite_mk5_lib.meters import iter_visible_meter_slots, resolve_meter_slot_name
+from ultralite_mk5_lib.meters import iter_visible_meter_slots, resolve_meter_slot
 from ultralite_mk5_lib.protocol import (
     optical_input_mode_from_snap,
     optical_input_mode_wire_from_snap,
     optical_output_mode_from_snap,
+    optical_output_mode_wire_from_snap,
 )
 from ultralite_mk5_lib.outputs import (
     TRIM_MAX_DB,
@@ -69,10 +70,10 @@ def _table_width() -> int:
     return width
 
 
-def _meter_table_reserved(rows: list[tuple[int, float | None]]) -> int:
+def _meter_table_reserved(rows: list[tuple[str, int, float | None]]) -> int:
     if not rows:
         return 40
-    name_w = max(len(resolve_meter_slot_name(r[0])) for r in rows)
+    name_w = max(len(name) for name, _, _ in rows)
     return name_w + 7  # dB
 
 
@@ -99,31 +100,38 @@ def _fader_table_reserved(
     return reserve
 
 
+def _fpga_patch_from_snap(snap: dict[str, Any]) -> dict[int, int]:
+    return {int(k): int(v) for k, v in snap.get("props", {}).get("fpga_patch", {}).items()}
+
+
 def _catalog_meter_rows(
     meters: list[float],
     *,
     meters_received: bool,
     sample_rate: int | None = None,
     optical_input_mode: int | None = None,
-) -> list[tuple[int, float | None]]:
+    optical_output_mode: int | None = None,
+    fpga_patch: dict[int, int] | None = None,
+) -> list[tuple[str, int, float | None]]:
     """One row per visible catalog entry, in display_index order."""
-    rows: list[tuple[int, float | None]] = []
+    rows: list[tuple[str, int, float | None]] = []
     for entry in iter_visible_meter_slots(
         sample_rate=sample_rate,
         optical_input_mode=optical_input_mode,
+        optical_output_mode=optical_output_mode,
     ):
-        slot = entry.slot
+        slot = resolve_meter_slot(entry, fpga_patch=fpga_patch)
         if not meters_received or slot < 0 or slot >= len(meters):
             db: float | None = None
         else:
             db = meters[slot]
             if db <= K_MIN_METER_DB:
                 db = K_MIN_METER_DB
-        rows.append((slot, db))
+        rows.append((entry.name, slot, db))
     return rows
 
 
-def _build_meter_table(rows: list[tuple[int, float | None]]) -> Table:
+def _build_meter_table(rows: list[tuple[str, int, float | None]]) -> Table:
     bar_width = _terminal_level_bar_width(_meter_table_reserved(rows))
     table = Table(
         show_header=True,
@@ -135,9 +143,9 @@ def _build_meter_table(rows: list[tuple[int, float | None]]) -> Table:
     table.add_column("name", no_wrap=True)
     table.add_column("dB", justify="right", no_wrap=True)
     table.add_column("level", no_wrap=True, min_width=bar_width, ratio=1)
-    for slot, db in rows:
+    for name, _slot, db in rows:
         table.add_row(
-            resolve_meter_slot_name(slot),
+            name,
             format_db(db),
             format_meter_bar(db, width=bar_width),
         )
@@ -152,6 +160,8 @@ def _build_active_meters_panel(snap: dict[str, Any]) -> RenderableType:
         meters_received=bool(snap.get("meters_received")),
         sample_rate=snap.get("sample_rate"),
         optical_input_mode=optical_input_mode_wire_from_snap(snap),
+        optical_output_mode=optical_output_mode_wire_from_snap(snap),
+        fpga_patch=_fpga_patch_from_snap(snap),
     )
     return Group(title, _build_meter_table(rows))
 

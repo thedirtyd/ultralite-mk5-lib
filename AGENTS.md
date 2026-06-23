@@ -80,7 +80,7 @@ flowchart TB
 | `mix_buses.py` | Per-bus **mix matrix** (inputs → reverb → host L/R → out), `kiMixFader` / `kiMixMute` indexing. |
 | `inputs.py` | Analog input gain (`kiGain`) labels and ranges. |
 | `outputs.py` | Output trim (`koTrim`), monitor/main trim, output monitoring helpers. |
-| `meters.py` | Meter slot index → human label (CueMix tab order). |
+| `meters.py` | Meter slot index → human label (CueMix tab order). Output-tab S/PDIF/optical meters resolve live slots via `kFPGAPatch`; optical out visibility follows `optical_mode[1]`. |
 | `report.py` | JSON-serializable `get-state` report (`build_state_report`). |
 | `display.py` | Rich terminal tables (`get-state`, `monitor-meters`). |
 | `interactive.py` | REPL after `connect`; state-heavy commands wait for readiness. |

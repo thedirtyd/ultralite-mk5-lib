@@ -7,7 +7,7 @@ from typing import Any
 from ultralite_mk5_lib.entity_keys import mix_bus_fader_entity_key
 from ultralite_mk5_lib.inputs import INPUT_GAIN_CHANNELS, build_input_gains
 from ultralite_mk5_lib.mix_buses import build_mix_bus_fader_matrix, mix_fader_gain_to_db
-from ultralite_mk5_lib.meters import iter_visible_meter_slots
+from ultralite_mk5_lib.meters import iter_visible_meter_slots, resolve_meter_slot
 from ultralite_mk5_lib.outputs import (
     MONITOR_TRIM_CHANNELS,
     OUTPUT_TRIM_CHANNELS,
@@ -18,6 +18,7 @@ from ultralite_mk5_lib.protocol import (
     optical_input_mode_from_snap,
     optical_input_mode_wire_from_snap,
     optical_output_mode_from_snap,
+    optical_output_mode_wire_from_snap,
 )
 from ultralite_mk5_lib.state import (
     K_MIN_METER_DB,
@@ -25,15 +26,21 @@ from ultralite_mk5_lib.state import (
 )
 
 
+def _fpga_patch_from_snap(snap: dict[str, Any]) -> dict[int, int]:
+    return {int(k): int(v) for k, v in snap.get("props", {}).get("fpga_patch", {}).items()}
+
+
 def _build_meter_entries(snap: dict[str, Any]) -> list[dict[str, Any]]:
     meters = snap.get("meters", [])
     meters_received = bool(snap.get("meters_received"))
+    fpga_patch = _fpga_patch_from_snap(snap)
     entries: list[dict[str, Any]] = []
     for entry in iter_visible_meter_slots(
         sample_rate=snap.get("sample_rate"),
         optical_input_mode=optical_input_mode_wire_from_snap(snap),
+        optical_output_mode=optical_output_mode_wire_from_snap(snap),
     ):
-        slot = entry.slot
+        slot = resolve_meter_slot(entry, fpga_patch=fpga_patch)
         if not meters_received or slot < 0 or slot >= len(meters):
             db: float | None = None
         else:
