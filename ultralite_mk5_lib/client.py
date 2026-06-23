@@ -135,6 +135,12 @@ class UltraLiteMk5:
             return False
         return self.connected
 
+    def start_background_reconnect(self) -> None:
+        """Start the reconnect thread without blocking."""
+        self._stop.clear()
+        if self.auto_reconnect:
+            self._ensure_reconnect_thread()
+
     def set_sample_rate(self, rate: int) -> None:
         """Set device sample rate in Hz."""
         if rate not in VALID_SAMPLE_RATES:
