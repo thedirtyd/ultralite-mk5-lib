@@ -10,6 +10,11 @@ import websocket
 
 from ultralite_mk5_lib.buses import solo_bus_mute_indices
 from ultralite_mk5_lib.entities import resolve_stereo_input_gain_ich
+from ultralite_mk5_lib.input_toggles import (
+    InputToggleCommand,
+    prepare_48v_command,
+    prepare_pad_command,
+)
 from ultralite_mk5_lib.levels import LevelCommand, prepare_level_command
 from ultralite_mk5_lib.mutes import (
     MuteCommand,
@@ -256,6 +261,40 @@ class UltraLiteMk5:
             opcode=websocket.ABNF.OPCODE_BINARY,
         )
         self.state.set_prop_local("mix_stereo", stereo_left_ich, 1 if stereo else 0)
+
+    def set_input_48v(self, key: str, value: str | None = None) -> InputToggleCommand:
+        """
+        Enable or disable 48V phantom power for Mic/Line In 1–2.
+
+        ``value`` is on/true/1 or off/false/0 (default: on).
+        """
+        jack_detect = self.state.props.get("jack_detect")
+        command = prepare_48v_command(key, value, jack_detect=jack_detect)
+        ws = self._require_connection()
+        ws.send(command.frame, opcode=websocket.ABNF.OPCODE_BINARY)
+        self.state.set_prop_local(
+            command.prop_key,
+            command.index,
+            1 if command.on else 0,
+        )
+        return command
+
+    def set_input_pad(self, key: str, value: str | None = None) -> InputToggleCommand:
+        """
+        Enable or disable pad for Mic/Line In 1–2.
+
+        ``value`` is on/true/1 or off/false/0 (default: on).
+        """
+        jack_detect = self.state.props.get("jack_detect")
+        command = prepare_pad_command(key, value, jack_detect=jack_detect)
+        ws = self._require_connection()
+        ws.send(command.frame, opcode=websocket.ABNF.OPCODE_BINARY)
+        self.state.set_prop_local(
+            command.prop_key,
+            command.index,
+            1 if command.on else 0,
+        )
+        return command
 
     def wait(self) -> None:
         """Block while the connection is open."""

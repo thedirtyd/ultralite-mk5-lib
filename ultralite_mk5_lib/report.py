@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ultralite_mk5_lib.entity_keys import mix_bus_fader_entity_key
-from ultralite_mk5_lib.inputs import INPUT_GAIN_CHANNELS, build_input_gains
+from ultralite_mk5_lib.inputs import INPUT_GAIN_CHANNELS, build_input_gains, build_mic_pre_state
 from ultralite_mk5_lib.mix_buses import build_mix_bus_fader_matrix, mix_fader_gain_to_db
 from ultralite_mk5_lib.meters import iter_visible_meter_slots, resolve_meter_slot
 from ultralite_mk5_lib.outputs import (
@@ -72,10 +72,22 @@ def build_state_report(snap: dict[str, Any]) -> dict[str, Any]:
         monitor_trim.append(row)
 
     gain_by_name = {name: db for name, db, _min, _max in build_input_gains(props)}
-    input_gain = [
-        {"key": ch.key, "name": ch.name, "db": gain_by_name[ch.name]}
-        for ch in INPUT_GAIN_CHANNELS
-    ]
+    mic_pre_by_index = {row["index"]: row for row in build_mic_pre_state(props)}
+    input_gain = []
+    for ch in INPUT_GAIN_CHANNELS:
+        row: dict[str, Any] = {
+            "key": ch.key,
+            "name": ch.name,
+            "db": gain_by_name[ch.name],
+        }
+        mic_pre = mic_pre_by_index.get(ch.index)
+        if mic_pre is not None:
+            row["48v"] = mic_pre["48v"]
+            row["pad"] = mic_pre["pad"]
+            row["jack"] = mic_pre["jack"]
+            row["key_48v"] = mic_pre["key_48v"]
+            row["key_pad"] = mic_pre["key_pad"]
+        input_gain.append(row)
 
     trim_by_name = {name: db for name, db in build_output_trims(props)}
     output_trim = [

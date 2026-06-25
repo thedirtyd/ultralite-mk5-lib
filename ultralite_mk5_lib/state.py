@@ -34,6 +34,9 @@ PROPERTY_TABLE: dict[int, tuple[str, str]] = {
     1027: ("bus_fader", "float"),
     1028: ("bus_mute", "byte"),
     5001: ("input_gain", "byte"),    # kiGain — analog input trim (Inputs tab)
+    5003: ("input_pad", "byte"),     # kPad — mic pre pad (indices 0–1)
+    5004: ("input_48v", "byte"),     # k48V — phantom power (indices 0–1)
+    5005: ("jack_detect", "byte"),   # kJackDetect — 0=mic, 1=line (read-only)
     5006: ("optical_mode", "byte"),  # kOpticalMode — [0]=input, [1]=output (ADAT/TOSlink)
     5000: ("output_trim", "byte"),   # koTrim — DAC trims (phones, lines)
     5010: ("fpga_patch", "byte"),    # kFPGAPatch — output routing + meter map

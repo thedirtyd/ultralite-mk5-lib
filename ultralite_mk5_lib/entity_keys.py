@@ -44,6 +44,14 @@ def input_gain_entity_key(channel_name: str) -> str:
     return f"INPUTGAIN_{normalize_key_part(channel_name)}"
 
 
+def input_48v_entity_key(channel_name: str) -> str:
+    return f"INPUT48V_{normalize_key_part(channel_name)}"
+
+
+def input_pad_entity_key(channel_name: str) -> str:
+    return f"INPUTPAD_{normalize_key_part(channel_name)}"
+
+
 def output_trim_entity_key(channel_name: str) -> str:
     return f"OUTPUTTRIM_{normalize_key_part(channel_name)}"
 

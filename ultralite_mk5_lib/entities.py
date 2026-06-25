@@ -10,7 +10,7 @@ from ultralite_mk5_lib.entity_keys import (
     mix_bus_entity_key_part,
     mix_bus_fader_entity_key,
 )
-from ultralite_mk5_lib.inputs import INPUT_GAIN_CHANNELS
+from ultralite_mk5_lib.inputs import INPUT_GAIN_CHANNELS, MIC_PRE_CHANNELS
 from ultralite_mk5_lib.meters import METER_SLOTS
 from ultralite_mk5_lib.mix_buses import (
     BUS_HOST_GAIN_ICH,
@@ -27,6 +27,8 @@ EntityKind = Literal[
     "mix_input",
     "bus_fader",
     "input_gain",
+    "input_48v",
+    "input_pad",
     "output_trim",
     "main_trim",
 ]
@@ -36,6 +38,8 @@ _KIND_TO_PROP: dict[EntityKind, str | None] = {
     "mix_fader": "mix_fader",
     "bus_fader": "bus_fader",
     "input_gain": "input_gain",
+    "input_48v": "input_48v",
+    "input_pad": "input_pad",
     "output_trim": "output_trim",
     "main_trim": "main_trim",
 }
@@ -77,6 +81,18 @@ def _build_registry() -> dict[str, EntityRef]:
             registry,
             ch.key,
             EntityRef("input_gain", ch.index, ch.name),
+        )
+
+    for ch in MIC_PRE_CHANNELS:
+        _register(
+            registry,
+            ch.key_48v,
+            EntityRef("input_48v", ch.index, f"{ch.name} 48V"),
+        )
+        _register(
+            registry,
+            ch.key_pad,
+            EntityRef("input_pad", ch.index, f"{ch.name} Pad"),
         )
 
     for ch in OUTPUT_TRIM_CHANNELS:
@@ -192,6 +208,12 @@ _METER_SLOT_TO_KEY: dict[int, str] = {
 _INPUT_GAIN_INDEX_TO_KEY: dict[int, str] = {
     ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "input_gain"
 }
+_INPUT_48V_INDEX_TO_KEY: dict[int, str] = {
+    ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "input_48v"
+}
+_INPUT_PAD_INDEX_TO_KEY: dict[int, str] = {
+    ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "input_pad"
+}
 _OUTPUT_TRIM_INDEX_TO_KEY: dict[int, str] = {
     ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "output_trim"
 }
@@ -296,6 +318,14 @@ def entity_key_for_meter_slot(slot: int) -> str | None:
 
 def entity_key_for_input_gain(index: int) -> str | None:
     return _INPUT_GAIN_INDEX_TO_KEY.get(index)
+
+
+def entity_key_for_input_48v(index: int) -> str | None:
+    return _INPUT_48V_INDEX_TO_KEY.get(index)
+
+
+def entity_key_for_input_pad(index: int) -> str | None:
+    return _INPUT_PAD_INDEX_TO_KEY.get(index)
 
 
 def entity_key_for_output_trim(index: int) -> str | None:

@@ -10,6 +10,10 @@ import textwrap
 from ultralite_mk5_lib.client import UltraLiteMk5
 from ultralite_mk5_lib.entities import ALL_ENTITY_KEYS, resolve_entity
 from ultralite_mk5_lib.exceptions import NotConnectedError, UltraLiteMk5Error
+from ultralite_mk5_lib.input_toggles import (
+    DEFAULT_TOGGLE_VALUE,
+    format_input_toggle_summary,
+)
 from ultralite_mk5_lib.levels import format_level_summary
 from ultralite_mk5_lib.mix_buses import STEREO_CAPABLE_MAX_GAIN_ICH
 from ultralite_mk5_lib.mutes import DEFAULT_MUTE_VALUE, format_mute_summary
@@ -32,6 +36,8 @@ INTERACTIVE_COMMANDS = (
     "set-level",
     "set-channel-mode",
     "set-mute",
+    "set-48v",
+    "set-pad",
     "list-entities",
     "solo-output-bus",
     "get-state",
@@ -123,6 +129,16 @@ def run_set_optical_output_mode(device: UltraLiteMk5, mode: str) -> None:
 def run_set_mute(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
     command = device.set_mute(key, value)
     print(format_mute_summary(command))
+
+
+def run_set_48v(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
+    command = device.set_input_48v(key, value)
+    print(format_input_toggle_summary(command))
+
+
+def run_set_pad(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
+    command = device.set_input_pad(key, value)
+    print(format_input_toggle_summary(command))
 
 
 def run_solo_output_bus(device: UltraLiteMk5, key: str) -> None:
@@ -229,6 +245,19 @@ def _add_set_mute_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_set_input_toggle_args(parser: argparse.ArgumentParser, *, kind: str) -> None:
+    parser.add_argument(
+        "key",
+        help=f"Entity key (INPUT{kind}_MICLINEIN01 or INPUT{kind}_MICLINEIN02)",
+    )
+    parser.add_argument(
+        "value",
+        nargs="?",
+        default=DEFAULT_TOGGLE_VALUE,
+        help="on/true/1 or off/false/0 (default: on)",
+    )
+
+
 def _add_get_state_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--json",
@@ -300,6 +329,20 @@ def _command_help_lines() -> dict[str, list[str]]:
             "  VALUE: mute/on/true/1 or unmute/off/false/0 (default: mute)",
             "  Examples: set-mute MIXBUSFADER_MAIN0102_LINEIN03",
             "            set-mute MIXBUSFADER_MAIN0102_OUT unmute",
+        ],
+        "set-48v": [
+            "set-48v KEY [VALUE]",
+            "  KEY: INPUT48V_MICLINEIN01 or INPUT48V_MICLINEIN02",
+            "  VALUE: on/true/1 or off/false/0 (default: on)",
+            "  Examples: set-48v INPUT48V_MICLINEIN01 on",
+            "            set-48v INPUT48V_MICLINEIN02 off",
+        ],
+        "set-pad": [
+            "set-pad KEY [VALUE]",
+            "  KEY: INPUTPAD_MICLINEIN01 or INPUTPAD_MICLINEIN02",
+            "  VALUE: on/true/1 or off/false/0 (default: on)",
+            "  Examples: set-pad INPUTPAD_MICLINEIN01 on",
+            "            set-pad INPUTPAD_MICLINEIN02 off",
         ],
         "solo-output-bus": [
             "solo-output-bus KEY",
@@ -390,6 +433,14 @@ def build_interactive_parser() -> argparse.ArgumentParser:
     set_mute = add_command("set-mute", help="Set mute by entity key")
     _add_set_mute_args(set_mute)
     set_mute.set_defaults(func=_interactive_set_mute)
+
+    set_48v = add_command("set-48v", help="Set 48V phantom power by entity key")
+    _add_set_input_toggle_args(set_48v, kind="48V")
+    set_48v.set_defaults(func=_interactive_set_48v)
+
+    set_pad = add_command("set-pad", help="Set mic pre pad by entity key")
+    _add_set_input_toggle_args(set_pad, kind="PAD")
+    set_pad.set_defaults(func=_interactive_set_pad)
 
     list_entities = add_command(
         "list-entities",
@@ -491,6 +542,14 @@ def _interactive_list_entities(
 
 def _interactive_set_mute(session: InteractiveSession, args: argparse.Namespace) -> None:
     run_set_mute(session.require_device(), args.key, args.value)
+
+
+def _interactive_set_48v(session: InteractiveSession, args: argparse.Namespace) -> None:
+    run_set_48v(session.require_device(), args.key, args.value)
+
+
+def _interactive_set_pad(session: InteractiveSession, args: argparse.Namespace) -> None:
+    run_set_pad(session.require_device(), args.key, args.value)
 
 
 def _interactive_solo_output_bus(

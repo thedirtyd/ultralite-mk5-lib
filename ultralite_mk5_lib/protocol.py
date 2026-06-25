@@ -20,8 +20,10 @@ K_MIX_STEREO_ID = 1000
 K_MIX_FADER_ID = 1016
 K_BUS_FADER_ID = 1027
 
-# kiGain / koTrim / kMainTrim in dev.js
+# kiGain / kPad / k48V / koTrim / kMainTrim in dev.js
 K_INPUT_GAIN_ID = 5001
+K_INPUT_PAD_ID = 5003
+K_INPUT_48V_ID = 5004
 K_OUTPUT_TRIM_ID = 5000
 K_MAIN_TRIM_ID = 5011
 
@@ -186,6 +188,14 @@ def make_bus_fader_frame(index: int, gain: float) -> bytes:
 
 def make_input_gain_frame(index: int, value: int) -> bytes:
     return make_byte_property(K_INPUT_GAIN_ID, index, value)
+
+
+def make_input_pad_frame(index: int, on: bool) -> bytes:
+    return make_byte_property(K_INPUT_PAD_ID, index, 1 if on else 0)
+
+
+def make_input_48v_frame(index: int, on: bool) -> bytes:
+    return make_byte_property(K_INPUT_48V_ID, index, 1 if on else 0)
 
 
 def make_output_trim_frame(index: int, value: int) -> bytes:

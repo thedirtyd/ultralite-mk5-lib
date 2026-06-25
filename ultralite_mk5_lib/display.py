@@ -12,7 +12,7 @@ from rich.table import Table
 from rich.text import Text
 
 from ultralite_mk5_lib.mix_buses import build_mix_bus_fader_matrix, mix_fader_gain_to_db
-from ultralite_mk5_lib.inputs import build_input_gains
+from ultralite_mk5_lib.inputs import build_input_gains, build_mic_pre_state
 from ultralite_mk5_lib.meters import iter_visible_meter_slots, resolve_meter_slot
 from ultralite_mk5_lib.protocol import (
     optical_input_mode_from_snap,
@@ -353,6 +353,27 @@ def _print_input_gain_table(snap: dict[str, Any]) -> None:
         max_db=74.0,
         row_limits=limits,
     )
+    mic_pre = build_mic_pre_state(props)
+    if not mic_pre:
+        return
+    _console.print("[bold]Mic Pre (48V / Pad)[/bold]")
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("name", no_wrap=True)
+    table.add_column("48V", no_wrap=True)
+    table.add_column("pad", no_wrap=True)
+    table.add_column("jack", no_wrap=True)
+    for row in mic_pre:
+        v48 = row["48v"]
+        pad = row["pad"]
+        jack = row["jack"]
+        table.add_row(
+            row["name"],
+            "on" if v48 else "off" if v48 is not None else "n/a",
+            "on" if pad else "off" if pad is not None else "n/a",
+            jack if jack is not None else "n/a",
+        )
+    _console.print(table)
+    _console.print()
 
 
 def _print_output_trim_table(snap: dict[str, Any]) -> None:
