@@ -156,6 +156,7 @@ class UltraLiteMk5:
         ws = self._require_connection()
         frame = make_sample_rate_frame(rate)
         ws.send(frame, opcode=websocket.ABNF.OPCODE_BINARY)
+        self.state.set_prop_local("sample_rate", 0, rate)
 
     def set_optical_input_mode(self, mode: str) -> None:
         """Set optical input mode to adat or toslink (kOpticalMode index 0)."""
