@@ -8,13 +8,24 @@ import sys
 import textwrap
 
 from ultralite_mk5_lib.client import UltraLiteMk5
+from ultralite_mk5_lib.commands import (
+    apply_set_channel_stereo_mode,
+    apply_set_input_48v,
+    apply_set_input_pad,
+    apply_set_level,
+    apply_set_mute,
+    apply_set_optical_input_mode,
+    apply_set_optical_output_mode,
+    apply_set_sample_rate,
+    apply_solo_output_bus,
+)
 from ultralite_mk5_lib.entities import ALL_ENTITY_KEYS, resolve_entity
 from ultralite_mk5_lib.exceptions import NotConnectedError, UltraLiteMk5Error
 from ultralite_mk5_lib.input_toggles import (
     DEFAULT_TOGGLE_VALUE,
     format_input_toggle_summary,
 )
-from ultralite_mk5_lib.levels import format_level_summary
+from ultralite_mk5_lib.levels import format_level_summary, fix_set_level_argv
 from ultralite_mk5_lib.mix_buses import STEREO_CAPABLE_MAX_GAIN_ICH
 from ultralite_mk5_lib.mutes import DEFAULT_MUTE_VALUE, format_mute_summary
 from ultralite_mk5_lib.protocol import (
@@ -112,37 +123,37 @@ class InteractiveSession:
 
 
 def run_set_sample_rate(device: UltraLiteMk5, rate: int) -> None:
-    device.set_sample_rate(rate)
+    apply_set_sample_rate(device, rate)
     print(f"Set sample rate to {rate} Hz")
 
 
 def run_set_optical_input_mode(device: UltraLiteMk5, mode: str) -> None:
-    device.set_optical_input_mode(mode)
+    apply_set_optical_input_mode(device, mode)
     print(f"Set optical input mode to {mode}")
 
 
 def run_set_optical_output_mode(device: UltraLiteMk5, mode: str) -> None:
-    device.set_optical_output_mode(mode)
+    apply_set_optical_output_mode(device, mode)
     print(f"Set optical output mode to {mode}")
 
 
 def run_set_mute(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
-    command = device.set_mute(key, value)
+    command = apply_set_mute(device, key, value)
     print(format_mute_summary(command))
 
 
 def run_set_48v(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
-    command = device.set_input_48v(key, value)
+    command = apply_set_input_48v(device, key, value)
     print(format_input_toggle_summary(command))
 
 
 def run_set_pad(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
-    command = device.set_input_pad(key, value)
+    command = apply_set_input_pad(device, key, value)
     print(format_input_toggle_summary(command))
 
 
 def run_solo_output_bus(device: UltraLiteMk5, key: str) -> None:
-    device.solo_output_bus(key)
+    apply_solo_output_bus(device, key)
     print(f"{key} solo (all other buses muted)")
 
 
@@ -164,13 +175,13 @@ def run_set_level(device: UltraLiteMk5, key: str, level: str) -> None:
                     "R channel level change will have no effect on audio.",
                     file=sys.stderr,
                 )
-    command = device.set_level(normalized, level)
+    command = apply_set_level(device, normalized, level)
     print(format_level_summary(command))
 
 
 def run_set_channel_mode(device: UltraLiteMk5, key: str, mode: str) -> None:
     normalized = key.strip().upper()
-    device.set_channel_stereo_mode(normalized, mode)
+    apply_set_channel_stereo_mode(device, normalized, mode)
     print(f"Set {normalized} channel pair to {mode.strip().lower()}")
 
 
@@ -602,15 +613,14 @@ def run_interactive_loop(session: InteractiveSession) -> int:
             argv[0] = _resolve_command_alias(argv[0])
 
         if argv and _resolve_command_alias(argv[0]) == "set-level":
-            parts = shlex.split(line, posix=True)
-            if len(parts) < 3:
+            if len(argv) < 3:
                 print(
                     "Error: set-level requires KEY and LEVEL",
                     file=sys.stderr,
                 )
                 _print_command_syntax_help(parser, "set-level")
                 continue
-            argv = ["set-level", parts[1], parts[2]]
+            argv = fix_set_level_argv(argv)
 
         try:
             args = parser.parse_args(argv)

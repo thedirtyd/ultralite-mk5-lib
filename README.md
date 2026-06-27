@@ -56,6 +56,7 @@ ultralite-mk5> monitor-meters
 ultralite-mk5> set-sample-rate --rate 96
 ultralite-mk5> set-optical-input-mode adat
 ultralite-mk5> set-optical-output-mode toslink
+ultralite-mk5> set-level MIXBUSFADER_PHONES_MICLINEIN01 -12db
 ultralite-mk5> set-level MIXBUSFADER_MAIN0102_LINEIN03 0.75
 ultralite-mk5> set-level VOLUME_MAIN -48db
 ultralite-mk5> set-level VOLUME_MAIN -inf
@@ -112,25 +113,52 @@ If `ultralite-mk5` is on your PATH after install, you can use that instead of `p
 ## Python API
 
 ```python
-from ultralite_mk5_lib import UltraLiteMk5, build_state_report
+from ultralite_mk5_lib import (
+    Buses,
+    InputMeters,
+    InputPairs,
+    Inputs,
+    LineOutputs,
+    Monitors,
+    UltraLiteMk5,
+    build_state_report,
+)
 
 with UltraLiteMk5("127.0.0.1", serial="ULM5FFF0EE") as device:
-    device.set_sample_rate(96000)
-    device.set_optical_input_mode("adat")
-    device.set_optical_output_mode("toslink")
-    device.set_mute("MIXBUSFADER_MAIN0102_OUT")
-    device.set_level("MIXBUSFADER_MAIN0102_LINEIN03", "0.75")
-    device.set_level("VOLUME_MAIN", "-6db")
-    device.solo_output_bus("MIXBUSFADER_PHONES_OUT")
+    device.wait_ready()
 
-    # Wait for state if you need it
-    device.state.wait_until_ready(device.timeout)
-    print(device.state.optical_input_mode)   # "adat" or "toslink"
-    print(device.state.optical_output_mode)
+    device.settings.sample_rate = 96000
+    device.settings.optical_input_mode = "adat"
+    device.settings.optical_output_mode = "toslink"
+
+    device.inputs[Inputs.MicLineIn01].gain_db = 12
+    device.inputs[Inputs.MicLineIn01].phantom = True
+
+    # Mix crosspoint fader (stereo-linked pairs mirror to R automatically)
+    device.mix[Buses.Phones].channel[Inputs.MicLineIn01].fader.db = -12.0
+    # Or address the pair explicitly (always writes L and R)
+    device.mix[Buses.Phones].channel[InputPairs.MicLineIn0102].fader.db = -12.0
+    # Entity keys (same strings as CLI / list-entities) also work
+    device.mix.fader_by_key("MIXBUSFADER_PHONES_MICLINEIN01").db = -12.0
+
+    device.mix[Buses.Main0102].out.db = -6.0
+    device.mix[Buses.Phones].muted = False
+    device.mix[Buses.Phones].solo()
+
+    device.mix.stereo[Inputs.MicLineIn01].linked = True
+
+    device.outputs.monitor[Monitors.Main].trim_db = -6.0
+    device.outputs.line[LineOutputs.MainOut01].trim_db = -10.0
+
+    print(device.meters.input[InputMeters.MicLineIn01].db)
+    print(device.layout.visible_fader_keys())
+
     report = build_state_report(device.state.snapshot())
     print(report["device"]["optical_input_mode"])
     print(device.snapshot_json())
 ```
+
+Entity key strings (`MIXBUSFADER_*`, `INPUTGAIN_*`, etc.) remain the stable identifiers used by the CLI and integrations. The typed enums (`Inputs`, `Buses`, …) map to the same wire indices underneath.
 
 ## Limitations
 

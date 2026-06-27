@@ -8,32 +8,15 @@ from typing import TYPE_CHECKING
 
 import websocket
 
-from ultralite_mk5_lib.buses import solo_bus_mute_indices
-from ultralite_mk5_lib.entities import resolve_stereo_input_gain_ich
-from ultralite_mk5_lib.input_toggles import (
-    InputToggleCommand,
-    prepare_48v_command,
-    prepare_pad_command,
-)
-from ultralite_mk5_lib.levels import LevelCommand, prepare_level_command
-from ultralite_mk5_lib.mutes import (
-    MuteCommand,
-    prepare_mute_command,
-    resolve_bus_mute_entity,
-    resolve_solo_bus_entity,
-)
-from ultralite_mk5_lib.protocol import (
-    VALID_SAMPLE_RATES,
-    OPTICAL_INPUT_MODE_INDEX,
-    OPTICAL_OUTPUT_MODE_INDEX,
-    build_ws_url,
-    make_bus_mute_frame,
-    make_mix_stereo_frame,
-    make_optical_mode_frame,
-    make_sample_rate_frame,
-    parse_optical_mode,
-)
+from ultralite_mk5_lib.exceptions import NotConnectedError
+from ultralite_mk5_lib.protocol import build_ws_url
 from ultralite_mk5_lib.state import DeviceState
+from ultralite_mk5_lib.views.inputs import InputsView
+from ultralite_mk5_lib.layout import LayoutView
+from ultralite_mk5_lib.views.meters import MetersView
+from ultralite_mk5_lib.views.mix import MixView
+from ultralite_mk5_lib.views.outputs import OutputsView
+from ultralite_mk5_lib.views.settings import SettingsView
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -78,6 +61,12 @@ class UltraLiteMk5:
         self._loss_notified = False
         self._rx_thread: threading.Thread | None = None
         self._reconnect_thread: threading.Thread | None = None
+        self._mix = MixView(self)
+        self._inputs = InputsView(self)
+        self._outputs = OutputsView(self)
+        self._meters = MetersView(self)
+        self._settings = SettingsView(self)
+        self._layout = LayoutView(self)
 
         if connect:
             self.connect()
@@ -146,156 +135,34 @@ class UltraLiteMk5:
         if self.auto_reconnect:
             self._ensure_reconnect_thread()
 
-    def set_sample_rate(self, rate: int) -> None:
-        """Set device sample rate in Hz."""
-        if rate not in VALID_SAMPLE_RATES:
-            raise ValueError(
-                f"rate must be one of {VALID_SAMPLE_RATES}, got {rate}"
-            )
+    @property
+    def mix(self) -> MixView:
+        return self._mix
 
-        ws = self._require_connection()
-        frame = make_sample_rate_frame(rate)
-        ws.send(frame, opcode=websocket.ABNF.OPCODE_BINARY)
-        self.state.set_prop_local("sample_rate", 0, rate)
+    @property
+    def inputs(self) -> InputsView:
+        return self._inputs
 
-    def set_optical_input_mode(self, mode: str) -> None:
-        """Set optical input mode to adat or toslink (kOpticalMode index 0)."""
-        wire = parse_optical_mode(mode)
-        ws = self._require_connection()
-        ws.send(
-            make_optical_mode_frame(OPTICAL_INPUT_MODE_INDEX, wire),
-            opcode=websocket.ABNF.OPCODE_BINARY,
-        )
-        self.state.set_prop_local("optical_mode", OPTICAL_INPUT_MODE_INDEX, wire)
+    @property
+    def outputs(self) -> OutputsView:
+        return self._outputs
 
-    def set_optical_output_mode(self, mode: str) -> None:
-        """Set optical output mode to adat or toslink (kOpticalMode index 1)."""
-        wire = parse_optical_mode(mode)
-        ws = self._require_connection()
-        ws.send(
-            make_optical_mode_frame(OPTICAL_OUTPUT_MODE_INDEX, wire),
-            opcode=websocket.ABNF.OPCODE_BINARY,
-        )
-        self.state.set_prop_local("optical_mode", OPTICAL_OUTPUT_MODE_INDEX, wire)
+    @property
+    def meters(self) -> MetersView:
+        return self._meters
 
-    def set_bus_mute(self, key: str, muted: bool) -> None:
-        """Mute or unmute a mix output bus (koBusMute) by MIXBUSFADER_*_OUT entity key."""
-        normalized, _ = resolve_bus_mute_entity(key)
-        self.set_mute(normalized, "mute" if muted else "unmute")
+    @property
+    def settings(self) -> SettingsView:
+        return self._settings
 
-    def set_mute(self, key: str, value: str | None = None) -> MuteCommand:
-        """
-        Set mute for a settable entity key.
+    @property
+    def layout(self) -> LayoutView:
+        return self._layout
 
-        ``value`` is mute/on/true/1 or unmute/off/false/0 (default: mute).
-        """
-        command = prepare_mute_command(key, value)
-        ws = self._require_connection()
-        ws.send(command.frame, opcode=websocket.ABNF.OPCODE_BINARY)
-        wire_value = 1 if command.muted else 0
-        if command.prop_key == "bus_mute":
-            self.state.set_bus_mute_local(command.index, command.muted)
-        else:
-            self.state.set_prop_local(
-                command.prop_key,
-                command.index,
-                wire_value,
-            )
-        return command
-
-    def solo_output_bus(self, key: str) -> None:
-        """
-        Solo one output bus: unmute it and mute all others.
-
-        ``key`` is a MIXBUSFADER_*_OUT entity key. Reverb mute state is not
-        changed and reverb is not a valid target.
-        """
-        _, active_index = resolve_solo_bus_entity(key)
-        ws = self._require_connection()
-        pairs = solo_bus_mute_indices(active_index)
-        payload = b"".join(
-            make_bus_mute_frame(index, muted)
-            for index, muted in pairs
-        )
-        ws.send(payload, opcode=websocket.ABNF.OPCODE_BINARY)
-        for index, muted in pairs:
-            self.state.set_bus_mute_local(index, muted)
-
-    def set_level(self, key: str, level: str) -> LevelCommand:
-        """
-        Set level for a settable entity key.
-
-        ``level`` is a CLI-style token: plain number (linear gain), ``-6db``,
-        or ``-inf`` / ``-infdb``.
-        """
-        command = prepare_level_command(key, level)
-        ws = self._require_connection()
-        ws.send(command.frame, opcode=websocket.ABNF.OPCODE_BINARY)
-        self.state.set_prop_local(
-            command.prop_key,
-            command.index,
-            command.wire_value,
-        )
-        return command
-
-    def set_channel_stereo_mode(self, key: str, mode: str) -> None:
-        """
-        Link or unlink an input channel pair (kiMixStereo).
-
-        ``key`` may be a ``MIXINPUT_*`` entity key, or any ``MIXBUSFADER_*``
-        crosspoint key for the L or R channel of the pair. Stereo mode applies
-        globally across all mix buses.
-        ``mode`` is ``stereo`` or ``mono``.
-        """
-        normalized = key.strip().upper()
-        gain_ich = resolve_stereo_input_gain_ich(normalized)
-
-        mode_lower = mode.strip().lower()
-        if mode_lower not in ("stereo", "mono"):
-            raise ValueError(f"mode must be 'stereo' or 'mono', got {mode!r}")
-
-        stereo_left_ich = gain_ich & 0xFE
-        stereo = mode_lower == "stereo"
-        ws = self._require_connection()
-        ws.send(
-            make_mix_stereo_frame(stereo_left_ich, stereo),
-            opcode=websocket.ABNF.OPCODE_BINARY,
-        )
-        self.state.set_prop_local("mix_stereo", stereo_left_ich, 1 if stereo else 0)
-
-    def set_input_48v(self, key: str, value: str | None = None) -> InputToggleCommand:
-        """
-        Enable or disable 48V phantom power for Mic/Line In 1–2.
-
-        ``value`` is on/true/1 or off/false/0 (default: on).
-        """
-        jack_detect = self.state.props.get("jack_detect")
-        command = prepare_48v_command(key, value, jack_detect=jack_detect)
-        ws = self._require_connection()
-        ws.send(command.frame, opcode=websocket.ABNF.OPCODE_BINARY)
-        self.state.set_prop_local(
-            command.prop_key,
-            command.index,
-            1 if command.on else 0,
-        )
-        return command
-
-    def set_input_pad(self, key: str, value: str | None = None) -> InputToggleCommand:
-        """
-        Enable or disable pad for Mic/Line In 1–2.
-
-        ``value`` is on/true/1 or off/false/0 (default: on).
-        """
-        jack_detect = self.state.props.get("jack_detect")
-        command = prepare_pad_command(key, value, jack_detect=jack_detect)
-        ws = self._require_connection()
-        ws.send(command.frame, opcode=websocket.ABNF.OPCODE_BINARY)
-        self.state.set_prop_local(
-            command.prop_key,
-            command.index,
-            1 if command.on else 0,
-        )
-        return command
+    def wait_ready(self, timeout: float | None = None) -> bool:
+        """Block until core mix/trim props needed for get-state have arrived."""
+        wait = self._timeout if timeout is None else timeout
+        return self.state.wait_until_ready(wait)
 
     def wait(self) -> None:
         """Block while the connection is open."""

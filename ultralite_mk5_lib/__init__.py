@@ -1,6 +1,16 @@
 """Control MOTU UltraLite mk5 / Gen5 devices over WebSocket."""
 
 from ultralite_mk5_lib.client import UltraLiteMk5
+from ultralite_mk5_lib.enums import (
+    Buses,
+    InputMeters,
+    InputPairs,
+    Inputs,
+    LineOutputs,
+    MixMeters,
+    Monitors,
+    OutputMeters,
+)
 from ultralite_mk5_lib.entities import (
     ALL_ENTITY_KEYS,
     DISPLAY_NAMES,
@@ -28,12 +38,20 @@ from ultralite_mk5_lib.protocol import (
 
 __all__ = [
     "ALL_ENTITY_KEYS",
+    "Buses",
     "DISPLAY_NAMES",
     "DeviceState",
+    "InputMeters",
+    "InputPairs",
+    "Inputs",
+    "LineOutputs",
     "MIX_INPUT_ENTITY_KEYS",
-    "SOLO_OUTPUT_BUS_KEYS",
+    "MixMeters",
+    "Monitors",
     "NotConnectedError",
+    "OutputMeters",
     "PasswordRequiredError",
+    "SOLO_OUTPUT_BUS_KEYS",
     "UltraLiteMk5",
     "UltraLiteMk5Error",
     "VALID_SAMPLE_RATES",
