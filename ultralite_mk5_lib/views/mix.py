@@ -340,6 +340,8 @@ class BusView:
         if key is None:
             raise ValueError(f"no bus out key for och={self._gain_och}")
         _, active_index = resolve_solo_bus_entity(key)
+        from ultralite_mk5_lib.buses import solo_bus_mute_indices
+
         pairs = solo_bus_mute_indices(active_index)
         payload = b"".join(make_bus_mute_frame(index, muted) for index, muted in pairs)
         send_binary(self._device, payload)
