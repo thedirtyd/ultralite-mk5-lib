@@ -31,6 +31,9 @@ class SettingsView:
 
     @sample_rate.setter
     def sample_rate(self, rate: int) -> None:
+        self.set_sample_rate(rate)
+
+    def set_sample_rate(self, rate: int) -> None:
         if rate not in VALID_SAMPLE_RATES:
             raise ValueError(
                 f"rate must be one of {VALID_SAMPLE_RATES}, got {rate}"
@@ -45,6 +48,9 @@ class SettingsView:
 
     @optical_input_mode.setter
     def optical_input_mode(self, mode: str) -> None:
+        self.set_optical_input_mode(mode)
+
+    def set_optical_input_mode(self, mode: str) -> None:
         wire = parse_optical_mode(mode)
         send_binary(
             self._device,
@@ -58,6 +64,9 @@ class SettingsView:
 
     @optical_output_mode.setter
     def optical_output_mode(self, mode: str) -> None:
+        self.set_optical_output_mode(mode)
+
+    def set_optical_output_mode(self, mode: str) -> None:
         wire = parse_optical_mode(mode)
         send_binary(
             self._device,
