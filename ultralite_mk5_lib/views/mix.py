@@ -313,9 +313,12 @@ class BusView:
 
     @muted.setter
     def muted(self, value: bool) -> None:
-        frame = make_bus_mute_frame(self._gain_och, value)
+        self.set_muted(value)
+
+    def set_muted(self, muted: bool) -> None:
+        frame = make_bus_mute_frame(self._gain_och, muted)
         send_binary(self._device, frame)
-        send_bus_mute_local(self._device, self._gain_och, value)
+        send_bus_mute_local(self._device, self._gain_och, muted)
 
     def solo(self) -> None:
         from ultralite_mk5_lib.mutes import resolve_solo_bus_entity
