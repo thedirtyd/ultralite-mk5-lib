@@ -48,6 +48,9 @@ class MonitorTrimHandle:
 
     @trim_db.setter
     def trim_db(self, value: float) -> None:
+        self.set_trim_db(value)
+
+    def set_trim_db(self, value: float) -> None:
         self.set_level_token(str(int(value) if value == int(value) else value))
 
     @property
@@ -93,6 +96,9 @@ class LineOutputTrimHandle:
 
     @trim_db.setter
     def trim_db(self, value: float) -> None:
+        self.set_trim_db(value)
+
+    def set_trim_db(self, value: float) -> None:
         self.set_level_token(str(int(value) if value == int(value) else value))
 
     def set_level_token(self, level: str) -> LevelCommand:

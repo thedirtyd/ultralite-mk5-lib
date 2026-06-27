@@ -74,6 +74,9 @@ class CrosspointFader:
 
     @db.setter
     def db(self, value: float) -> None:
+        self.set_db(value)
+
+    def set_db(self, value: float) -> None:
         self._write_wire_gain(_db_to_wire_gain(value), mirror_stereo=True)
 
     @property
@@ -86,9 +89,12 @@ class CrosspointFader:
 
     @muted.setter
     def muted(self, value: bool) -> None:
-        frame = make_mix_mute_frame(self.flat_index, value)
+        self.set_muted(value)
+
+    def set_muted(self, muted: bool) -> None:
+        frame = make_mix_mute_frame(self.flat_index, muted)
         send_binary(self._device, frame)
-        send_prop_local(self._device, "mix_mute", self.flat_index, 1 if value else 0)
+        send_prop_local(self._device, "mix_mute", self.flat_index, 1 if muted else 0)
 
     def set_level_token(self, level: str) -> LevelCommand:
         command = prepare_level_command(self._entity_key(), level)
@@ -189,9 +195,12 @@ class OutFaderHandle:
 
     @db.setter
     def db(self, value: float) -> None:
-        gain = _db_to_wire_gain(value)
+        self.set_db(value)
+
+    def set_db(self, value: float) -> None:
         from ultralite_mk5_lib.protocol import make_bus_fader_frame
 
+        gain = _db_to_wire_gain(value)
         frame = make_bus_fader_frame(self._gain_och, gain)
         send_binary(self._device, frame)
         send_prop_local(self._device, "bus_fader", self._gain_och, gain)
@@ -268,15 +277,18 @@ class StereoLinkHandle:
 
     @linked.setter
     def linked(self, value: bool) -> None:
-        frame = make_mix_stereo_frame(self._left_ich, value)
+        self.set_linked(value)
+
+    def set_linked(self, linked: bool) -> None:
+        frame = make_mix_stereo_frame(self._left_ich, linked)
         send_binary(self._device, frame)
-        send_prop_local(self._device, "mix_stereo", self._left_ich, 1 if value else 0)
+        send_prop_local(self._device, "mix_stereo", self._left_ich, 1 if linked else 0)
 
     def set_mode(self, mode: str) -> None:
         mode_lower = mode.strip().lower()
         if mode_lower not in ("stereo", "mono"):
             raise ValueError(f"mode must be 'stereo' or 'mono', got {mode!r}")
-        self.linked = mode_lower == "stereo"
+        self.set_linked(mode_lower == "stereo")
 
 
 class _StereoProxy:

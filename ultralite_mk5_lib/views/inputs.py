@@ -50,6 +50,9 @@ class InputChannel:
 
     @gain_db.setter
     def gain_db(self, value: float) -> None:
+        self.set_gain_db(value)
+
+    def set_gain_db(self, value: float) -> None:
         self.set_level_token(str(int(value) if value == int(value) else value))
 
     def set_level_token(self, level: str) -> LevelCommand:
@@ -92,6 +95,9 @@ class MicInputChannel(InputChannel):
 
     @phantom.setter
     def phantom(self, on: bool) -> None:
+        self.set_phantom(on)
+
+    def set_phantom(self, on: bool) -> None:
         self.set_phantom_token("on" if on else "off")
 
     @property
@@ -103,6 +109,9 @@ class MicInputChannel(InputChannel):
 
     @pad.setter
     def pad(self, on: bool) -> None:
+        self.set_pad(on)
+
+    def set_pad(self, on: bool) -> None:
         self.set_pad_token("on" if on else "off")
 
     def set_phantom_token(self, value: str | None = None) -> InputToggleCommand:
