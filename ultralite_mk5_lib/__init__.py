@@ -27,6 +27,12 @@ from ultralite_mk5_lib.exceptions import (
     NotConnectedError,
     UltraLiteMk5Error,
 )
+from ultralite_mk5_lib.meter_labels import (
+    build_meter_names,
+    digital_meter_layout,
+    iter_layout_meter_keys,
+    meter_display_name,
+)
 from ultralite_mk5_lib.protocol import (
     VALID_SAMPLE_RATES,
     format_optical_mode,
@@ -53,8 +59,12 @@ __all__ = [
     "UltraLiteMk5",
     "UltraLiteMk5Error",
     "VALID_SAMPLE_RATES",
+    "build_meter_names",
     "build_state_report",
+    "digital_meter_layout",
     "display_name",
+    "iter_layout_meter_keys",
+    "meter_display_name",
     "format_optical_mode",
     "meter_slot",
     "optical_input_mode_from_snap",
