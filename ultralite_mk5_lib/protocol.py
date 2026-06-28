@@ -27,9 +27,8 @@ K_INPUT_48V_ID = 5004
 K_OUTPUT_TRIM_ID = 5000
 K_MAIN_TRIM_ID = 5011
 
-# kiMixMute / kMuteEnable in dev.js
+# kiMixMute in dev.js
 K_MIX_MUTE_ID = 1019
-K_MUTE_ENABLE_ID = 5019
 
 # kOpticalMode in dev.js — id 5006, kTByte; [0]=input, [1]=output (ADAT/TOSlink)
 K_OPTICAL_MODE_ID = 5006
@@ -133,9 +132,6 @@ def optical_output_mode_from_snap(snap: dict[str, Any]) -> str | None:
     return optical_mode_from_props(snap.get("props", {}), OPTICAL_OUTPUT_MODE_INDEX)
 
 
-PROXY_MESSAGE_ID = 0xFFFE
-K_PASSWORD_ENABLE_STATUS = 2
-
 LOCALHOSTS = frozenset({"127.0.0.1", "localhost"})
 
 
@@ -220,36 +216,3 @@ def make_bus_mute_frame(index: int, muted: bool) -> bytes:
 
 def make_mix_mute_frame(index: int, muted: bool) -> bytes:
     return make_byte_property(K_MIX_MUTE_ID, index, 1 if muted else 0)
-
-
-def make_mute_enable_frame(index: int, muted: bool) -> bytes:
-    return make_byte_property(K_MUTE_ENABLE_ID, index, 1 if muted else 0)
-
-
-def password_required_from_frame(data: bytes) -> bool | None:
-    """
-    Return True/False if frame is kPasswordEnableStatus, else None.
-    Expects full WebSocket payload starting with 0xFFFE proxy message id.
-    """
-    if len(data) < 5:
-        return None
-    msg_id = struct.unpack(">H", data[0:2])[0]
-    if msg_id != PROXY_MESSAGE_ID:
-        return None
-    sub_id = struct.unpack(">H", data[2:4])[0]
-    if sub_id != K_PASSWORD_ENABLE_STATUS:
-        return None
-    return data[4] != 0
-
-
-def format_hex_dump(data: bytes) -> str:
-    """Format binary data like hexdump -C (16 bytes per line, grouped by 16-bit words)."""
-    lines: list[str] = []
-    for offset in range(0, len(data), 16):
-        chunk = data[offset : offset + 16]
-        hex_groups = " ".join(
-            f"{chunk[i : i + 2].hex()}" for i in range(0, len(chunk), 2)
-        )
-        ascii_part = "".join(chr(b) if 32 <= b < 127 else "." for b in chunk)
-        lines.append(f"{offset:08x}: {hex_groups:<47}  {ascii_part}")
-    return "\n".join(lines)

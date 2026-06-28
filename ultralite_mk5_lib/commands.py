@@ -51,13 +51,6 @@ def apply_set_mute(device: UltraLiteMk5, key: str, value: str | None = None) -> 
     return command
 
 
-def apply_set_bus_mute(device: UltraLiteMk5, key: str, muted: bool) -> MuteCommand:
-    from ultralite_mk5_lib.mutes import resolve_bus_mute_entity
-
-    normalized, _index = resolve_bus_mute_entity(key)
-    return apply_set_mute(device, normalized, "mute" if muted else "unmute")
-
-
 def apply_solo_output_bus(device: UltraLiteMk5, key: str) -> None:
     _, active_index = resolve_solo_bus_entity(key)
     from ultralite_mk5_lib.buses import solo_bus_mute_indices

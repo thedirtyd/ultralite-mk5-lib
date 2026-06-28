@@ -1,15 +1,11 @@
-"""Device layout, visibility, and change fingerprints."""
+"""Device layout and visibility derived from live state."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
 from ultralite_mk5_lib.buses import MIX_BUS_MUTE_INDICES
-from ultralite_mk5_lib.entities import (
-    DISPLAY_NAMES,
-    entity_key_for_mix_fader,
-    resolve_entity,
-)
+from ultralite_mk5_lib.entities import entity_key_for_mix_fader
 from ultralite_mk5_lib.meters import iter_visible_meter_slots
 from ultralite_mk5_lib.mix_buses import MixMatrixColumn, mix_matrix_columns
 from ultralite_mk5_lib.protocol import (
@@ -19,10 +15,6 @@ from ultralite_mk5_lib.protocol import (
 
 if TYPE_CHECKING:
     from ultralite_mk5_lib.client import UltraLiteMk5
-
-
-def fpga_patch_from_props(props: dict[str, dict[int, Any]]) -> dict[int, int]:
-    return {int(k): int(v) for k, v in props.get("fpga_patch", {}).items()}
 
 
 def _mix_stereo_hidden(col: MixMatrixColumn, mix_stereo: dict[int, int]) -> bool:
@@ -79,43 +71,3 @@ class LayoutView:
             optical_input_mode=optical_input_mode_wire_from_snap(snap),
             optical_output_mode=optical_output_mode_wire_from_snap(snap),
         )]
-
-    def fingerprint(self) -> tuple[Any, ...]:
-        snap = self._snap()
-        props = snap.get("props", {})
-        return (
-            snap.get("sample_rate"),
-            optical_input_mode_wire_from_snap(snap),
-            optical_output_mode_wire_from_snap(snap),
-            tuple(sorted(props.get("mix_stereo", {}).items())),
-            tuple(sorted(fpga_patch_from_props(props).items())),
-        )
-
-    def props_fingerprint(self) -> tuple[Any, ...]:
-        props = self._snap().get("props", {})
-        keys = (
-            "sample_rate",
-            "optical_mode",
-            "mix_stereo",
-            "bus_mute",
-            "bus_fader",
-            "mix_fader",
-            "main_trim",
-            "output_trim",
-            "input_gain",
-            "input_48v",
-            "input_pad",
-            "jack_detect",
-            "fpga_patch",
-        )
-        return tuple(
-            (key, tuple(sorted(props.get(key, {}).items())))
-            for key in keys
-            if key in props
-        )
-
-    def display_name(self, key: str) -> str:
-        normalized = key.strip().upper()
-        if normalized in DISPLAY_NAMES:
-            return DISPLAY_NAMES[normalized]
-        return resolve_entity(normalized).display

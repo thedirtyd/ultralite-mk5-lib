@@ -25,7 +25,6 @@ from ultralite_mk5_lib.report import build_state_report, state_report_to_json
 from ultralite_mk5_lib.state import DeviceState, snapshot_to_json
 from ultralite_mk5_lib.exceptions import (
     NotConnectedError,
-    PasswordRequiredError,
     UltraLiteMk5Error,
 )
 from ultralite_mk5_lib.protocol import (
@@ -50,7 +49,6 @@ __all__ = [
     "Monitors",
     "NotConnectedError",
     "OutputMeters",
-    "PasswordRequiredError",
     "SOLO_OUTPUT_BUS_KEYS",
     "UltraLiteMk5",
     "UltraLiteMk5Error",

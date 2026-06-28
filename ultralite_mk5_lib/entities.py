@@ -6,10 +6,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ultralite_mk5_lib.buses import MIX_BUS_MUTE_INDICES
-from ultralite_mk5_lib.entity_keys import (
-    mix_bus_entity_key_part,
-    mix_bus_fader_entity_key,
-)
+from ultralite_mk5_lib.entity_keys import mix_bus_fader_entity_key
 from ultralite_mk5_lib.inputs import INPUT_GAIN_CHANNELS, MIC_PRE_CHANNELS
 from ultralite_mk5_lib.meters import METER_SLOTS
 from ultralite_mk5_lib.mix_buses import (
@@ -233,41 +230,15 @@ SET_CHANNEL_MODE_ENTITY_KEYS: tuple[str, ...] = tuple(
     )
 )
 
-_METER_SLOT_TO_KEY: dict[int, str] = {
-    ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "meter"
-}
-_INPUT_GAIN_INDEX_TO_KEY: dict[int, str] = {
-    ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "input_gain"
-}
-_INPUT_48V_INDEX_TO_KEY: dict[int, str] = {
-    ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "input_48v"
-}
-_INPUT_PAD_INDEX_TO_KEY: dict[int, str] = {
-    ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "input_pad"
-}
-_OUTPUT_TRIM_INDEX_TO_KEY: dict[int, str] = {
-    ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "output_trim"
-}
-_MAIN_TRIM_INDEX_TO_KEY: dict[int, str] = {
-    ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "main_trim"
-}
 _MIX_FADER_TO_KEY: dict[tuple[int, int], str] = {
     (ref.gain_ich, ref.gain_och): key
     for key, ref in ENTITY_REGISTRY.items()
     if ref.kind == "mix_fader" and ref.gain_ich is not None and ref.gain_och is not None
 }
-_MIX_INPUT_GAIN_ICH_TO_KEY: dict[int, str] = {
-    ref.gain_ich: key
-    for key, ref in ENTITY_REGISTRY.items()
-    if ref.kind == "mix_input" and ref.gain_ich is not None
-}
 _BUS_FADER_TO_KEY: dict[int, str] = {
     ref.gain_och: key
     for key, ref in ENTITY_REGISTRY.items()
     if ref.kind == "bus_fader" and ref.gain_och is not None
-}
-_BUS_NAME_TO_KEY: dict[str, str] = {
-    bus_name: mix_bus_entity_key_part(bus_name) for bus_name in MIX_BUS_MUTE_INDICES
 }
 _COLUMN_KEY_TO_MIX_KEY: dict[tuple[str, str], str] = {
     (bus_name, col.key): mix_bus_fader_entity_key(bus_name, col.label)
@@ -326,14 +297,6 @@ def meter_slot(key: str) -> int:
     return ref.index
 
 
-def mix_fader_flat_index(key: str) -> int:
-    """kiMixFader flat index for a MIXBUSFADER_* crosspoint constant."""
-    ref = resolve_entity(key)
-    if ref.kind != "mix_fader":
-        raise ValueError(f"{key!r} is not a mix fader entity")
-    return ref.index
-
-
 def property_index(key: str) -> tuple[str, int]:
     """Return (DeviceState props key, wire index) for an entity constant."""
     ref = resolve_entity(key)
@@ -343,41 +306,5 @@ def property_index(key: str) -> tuple[str, int]:
     return prop, ref.index
 
 
-def entity_key_for_meter_slot(slot: int) -> str | None:
-    return _METER_SLOT_TO_KEY.get(slot)
-
-
-def entity_key_for_input_gain(index: int) -> str | None:
-    return _INPUT_GAIN_INDEX_TO_KEY.get(index)
-
-
-def entity_key_for_input_48v(index: int) -> str | None:
-    return _INPUT_48V_INDEX_TO_KEY.get(index)
-
-
-def entity_key_for_input_pad(index: int) -> str | None:
-    return _INPUT_PAD_INDEX_TO_KEY.get(index)
-
-
-def entity_key_for_output_trim(index: int) -> str | None:
-    return _OUTPUT_TRIM_INDEX_TO_KEY.get(index)
-
-
-def entity_key_for_main_trim(index: int) -> str | None:
-    return _MAIN_TRIM_INDEX_TO_KEY.get(index)
-
-
-def entity_key_for_mix_bus(bus_name: str) -> str:
-    return _BUS_NAME_TO_KEY[bus_name]
-
-
-def entity_key_for_mix_column(column_key: str, bus_name: str) -> str:
-    return _COLUMN_KEY_TO_MIX_KEY[(bus_name, column_key)]
-
-
 def entity_key_for_mix_fader(bus_name: str, column_key: str) -> str:
-    return entity_key_for_mix_column(column_key, bus_name)
-
-
-def entity_key_for_mix_input(gain_ich: int) -> str | None:
-    return _MIX_INPUT_GAIN_ICH_TO_KEY.get(gain_ich)
+    return _COLUMN_KEY_TO_MIX_KEY[(bus_name, column_key)]

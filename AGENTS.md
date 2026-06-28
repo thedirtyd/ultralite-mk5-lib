@@ -35,16 +35,20 @@ flowchart TB
   subgraph cli [CLI / interactive]
     cli_py[cli.py]
     interactive[interactive.py]
+    commands[commands.py]
     display[display.py]
   end
 
   subgraph api [Library API]
     client[client.py UltraLiteMk5]
+    views[views/*]
+    layout[layout.py]
     state[state.py DeviceState]
     protocol[protocol.py]
   end
 
   subgraph domain [Domain layout]
+    entities[entities.py]
     buses[buses.py]
     mix_buses[mix_buses.py]
     inputs[inputs.py]
@@ -55,12 +59,16 @@ flowchart TB
 
   device[(MOTU device / CueMix proxy)]
 
-  cli_py --> client
-  interactive --> client
-  display --> report
-  report --> mix_buses
+  cli_py --> commands
+  interactive --> commands
+  commands --> views
+  views --> client
+  client --> layout
   client --> state
   client --> protocol
+  display --> report
+  report --> mix_buses
+  views --> entities
   state --> mix_buses
   mix_buses --> buses
   report --> inputs
@@ -73,7 +81,12 @@ flowchart TB
 
 | Module | Responsibility |
 |--------|----------------|
-| `client.py` | `UltraLiteMk5`: connect, auto-reconnect, background recv thread, connection callbacks, outbound commands (sample rate, optical mode, bus mute, solo). Connect returns once the WebSocket is up; state fills in the background. |
+| `client.py` | `UltraLiteMk5`: connect, auto-reconnect, background recv thread, connection callbacks. Exposes domain views (`mix`, `inputs`, `outputs`, `meters`, `settings`, `layout`). |
+| `views/*` | OOP control surface: faders, mutes, trims, meters, sample rate, optical modes. CLI and HA call these directly. |
+| `commands.py` | CLI → view routing (`apply_set_level`, `apply_set_mute`, etc.). |
+| `layout.py` | `LayoutView`: visible fader/meter keys from live state (sample rate, optical mode, stereo link, FPGA patch). |
+| `entities.py` | Entity registry, stable keys, `resolve_entity()`, display names. |
+| `levels.py` / `mutes.py` / `input_toggles.py` | Shared level/mute/toggle parsing and wire encoding for views and CLI. |
 | `state.py` | `DeviceState`: parses inbound frames into `props` and `meters`. `PROPERTY_TABLE` mirrors CueMix property IDs. `reset()` on disconnect. `is_ready()` / `wait_until_ready()` for commands that need full mix state. |
 | `protocol.py` | URL building (`ws://host:1280` direct, `ws://127.0.0.1:1281/<serial>` via local proxy), outbound frame builders. |
 | `buses.py` | Mix **output bus** names and `koBusMute` indices; solo bus resolution. |
@@ -85,7 +98,6 @@ flowchart TB
 | `display.py` | Rich terminal tables (`get-state`, `monitor-meters`). |
 | `interactive.py` | REPL after `connect`; state-heavy commands wait for readiness. |
 | `cli.py` | One-shot commands and `connect` entry point. |
-| `benchmark_meters.py` | Internal meter throughput benchmark (no Rich). |
 
 ### Connection model
 
@@ -93,8 +105,8 @@ flowchart TB
 - **Auto-reconnect** (default `auto_reconnect=True` on `UltraLiteMk5`): when the WebSocket drops, the recv thread calls `DeviceState.reset()`, fires `on_connection_lost` once, and a background thread retries every `reconnect_interval` seconds (default 1.0) until the device is reachable again. On success, `on_connection_restored` fires once and the property burst repopulates state. Pass `auto_reconnect=False` for fail-fast one-shot scripts.
 - **`wait_until_connected()`**: block until connected (forever by default). Used internally by outbound commands when auto-reconnect is enabled.
 - **Interactive CLI**: registers `on_connection_lost` to print one `Waiting for device...` line to stderr; `require_device()` waits instead of raising `NotConnectedError`.
-- **Long-lived integrations** (e.g. Home Assistant): hold one `UltraLiteMk5` with callbacks to mark entities unavailable on disconnect and available after restore; use `state.add_observer()` for property updates; run blocking API calls in a worker thread.
-- **Outbound-only commands** (`set-mute`, `solo-output-bus`, `set-sample-rate`, `set-level`, `set-optical-input-mode`, `set-optical-output-mode`): send frames immediately once connected; block until reconnected when auto-reconnect is on.
+- **Long-lived integrations** (e.g. Home Assistant): hold one `UltraLiteMk5` with callbacks to mark entities unavailable on disconnect and available after restore; use `state.add_observer()` for property updates; run blocking API calls in a worker thread; control device via `device.mix`, `.inputs`, `.outputs`, `.settings`, etc.
+- **Outbound commands** (set-mute, solo, set-level, sample rate, optical modes): send via domain views (`device.mix[...]`, `device.settings`, …) or CLI `commands.py` wrappers; block until reconnected when auto-reconnect is on.
 - **State-heavy commands** (`get-state`, `monitor-meters`): wait for `DeviceState.is_ready()` or `meters_received`, with a stderr notice if needed. After reconnect, readiness must be re-established because `reset()` clears cached props.
 
 Assumes device password protection is **disabled** (`fffe 0002 00` on connect). Password auth is not implemented.
