@@ -28,10 +28,12 @@ from ultralite_mk5_lib.exceptions import (
     UltraLiteMk5Error,
 )
 from ultralite_mk5_lib.meter_labels import (
+    MeterNameEntry,
     build_meter_names,
     digital_meter_layout,
     iter_layout_meter_keys,
     meter_display_name,
+    meter_name_entry,
 )
 from ultralite_mk5_lib.protocol import (
     VALID_SAMPLE_RATES,
@@ -51,6 +53,7 @@ __all__ = [
     "Inputs",
     "LineOutputs",
     "MIX_INPUT_ENTITY_KEYS",
+    "MeterNameEntry",
     "MixMeters",
     "Monitors",
     "NotConnectedError",
@@ -65,6 +68,7 @@ __all__ = [
     "display_name",
     "iter_layout_meter_keys",
     "meter_display_name",
+    "meter_name_entry",
     "format_optical_mode",
     "meter_slot",
     "optical_input_mode_from_snap",

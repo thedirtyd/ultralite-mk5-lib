@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from ultralite_mk5_lib.entities import display_name, resolve_entity
 from ultralite_mk5_lib.meters import (
@@ -20,6 +20,13 @@ from ultralite_mk5_lib.protocol import (
 )
 
 _METER_KEY_BY_CATALOG_NAME = {entry.name: entry.key for entry in METER_SLOTS}
+
+
+class MeterNameEntry(TypedDict):
+    """Per-meter display labels: mono always; stereo when pairable."""
+
+    mono: str
+    stereo: NotRequired[str]
 
 
 def _mix_stereo_props(snapshot: dict[str, Any]) -> dict[int, int]:
@@ -99,6 +106,51 @@ def iter_layout_meter_keys(snapshot: dict[str, Any]) -> tuple[str, ...]:
     )
 
 
+def _meter_name_entry_for_column(
+    col: MixMatrixColumn,
+    *,
+    prefix: str,
+    suffix: str = "",
+) -> MeterNameEntry:
+    """Build mono/stereo labels for an input-tap or mix-post-FX meter column."""
+    entry: MeterNameEntry = {"mono": f"{prefix}{col.label}{suffix}"}
+    left_ich = col.stereo_left_ich
+    if left_ich is not None:
+        left_col = _column_by_gain_ich(left_ich)
+        if left_col is not None and left_col.stereo_label is not None:
+            entry["stereo"] = f"{prefix}{left_col.stereo_label}{suffix}"
+    return entry
+
+
+def meter_name_entry(key: str, snapshot: dict[str, Any]) -> MeterNameEntry:
+    """Mono label per key; optional stereo label when the meter is pairable."""
+    ref = resolve_entity(key)
+    if ref.kind != "meter":
+        return {"mono": display_name(key)}
+
+    out_trim = _output_trim_meter_label(key)
+    if out_trim is not None:
+        return {"mono": out_trim}
+
+    for gain_ich, meter_keys in _GAIN_ICH_TO_METER_KEYS.items():
+        if key not in meter_keys:
+            continue
+        col = _column_by_gain_ich(gain_ich)
+        if col is None:
+            break
+        if ref.display.startswith("Inputs - "):
+            return _meter_name_entry_for_column(col, prefix="Inputs - ")
+        if ref.display.startswith("Mix - ") and ref.display.endswith(" post-FX"):
+            return _meter_name_entry_for_column(
+                col,
+                prefix="Mix - ",
+                suffix=" post-FX",
+            )
+        break
+
+    return {"mono": display_name(key)}
+
+
 def meter_display_name(key: str, snapshot: dict[str, Any]) -> str:
     """Snapshot-aware display label; stereo pairs share one name on L and R."""
     ref = resolve_entity(key)
@@ -126,10 +178,10 @@ def meter_display_name(key: str, snapshot: dict[str, Any]) -> str:
     return display_name(key)
 
 
-def build_meter_names(snapshot: dict[str, Any]) -> dict[str, str]:
-    """Layout-active meter key -> current display label."""
+def build_meter_names(snapshot: dict[str, Any]) -> dict[str, MeterNameEntry]:
+    """Layout-active meter key -> mono label and optional stereo label."""
     return {
-        key: meter_display_name(key, snapshot)
+        key: meter_name_entry(key, snapshot)
         for key in iter_layout_meter_keys(snapshot)
     }
 

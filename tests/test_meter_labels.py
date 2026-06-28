@@ -9,6 +9,7 @@ from ultralite_mk5_lib.meter_labels import (
     digital_meter_layout,
     iter_layout_meter_keys,
     meter_display_name,
+    meter_name_entry,
 )
 from ultralite_mk5_lib.meters import OPTICAL_MODE_ADAT
 
@@ -65,6 +66,27 @@ class TestBuildMeterNames(unittest.TestCase):
         names = build_meter_names(minimal_snapshot())
         self.assertIn("METER_INPUT_MICLINEIN01", names)
         self.assertIn("METER_INPUT_OPTICAL01", names)
+        self.assertIn("mono", names["METER_INPUT_MICLINEIN01"])
+
+    def test_stereo_pair_has_mono_and_stereo(self) -> None:
+        names = build_meter_names(minimal_snapshot())
+        left = names["METER_INPUT_MICLINEIN01"]
+        right = names["METER_INPUT_MICLINEIN02"]
+        self.assertEqual(left["mono"], "Inputs - Mic/Line In 1")
+        self.assertEqual(right["mono"], "Inputs - Mic/Line In 2")
+        self.assertEqual(left["stereo"], "Inputs - Mic/Line In 1/2")
+        self.assertEqual(right["stereo"], left["stereo"])
+
+    def test_output_trim_has_mono_only(self) -> None:
+        names = build_meter_names(minimal_snapshot())
+        main = names["METER_OUTPUT_MAINOUT01MIX"]
+        self.assertEqual(main["mono"], "Main Out 1")
+        self.assertNotIn("stereo", main)
+
+    def test_optical_pair_stereo_label(self) -> None:
+        names = build_meter_names(minimal_snapshot())
+        self.assertEqual(names["METER_INPUT_OPTICAL01"]["stereo"], "Inputs - Optical 1/2")
+        self.assertEqual(names["METER_INPUT_OPTICAL02"]["mono"], "Inputs - Optical 2")
 
     def test_192k_omits_optical_meters(self) -> None:
         snap = minimal_snapshot(sample_rate=192000)
