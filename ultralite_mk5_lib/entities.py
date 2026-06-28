@@ -202,6 +202,37 @@ MIX_INPUT_ENTITY_KEYS: tuple[str, ...] = tuple(
     sorted(ch.key for ch in MIX_INPUT_CHANNELS)
 )
 
+SET_LEVEL_ENTITY_KEYS: tuple[str, ...] = tuple(
+    key
+    for key, ref in sorted(ENTITY_REGISTRY.items())
+    if ref.kind in ("input_gain", "main_trim", "output_trim", "mix_fader", "bus_fader")
+)
+
+SET_MUTE_ENTITY_KEYS: tuple[str, ...] = tuple(
+    key
+    for key, ref in sorted(ENTITY_REGISTRY.items())
+    if ref.kind in ("mix_fader", "bus_fader")
+)
+
+INPUT_48V_ENTITY_KEYS: tuple[str, ...] = tuple(ch.key_48v for ch in MIC_PRE_CHANNELS)
+
+INPUT_PAD_ENTITY_KEYS: tuple[str, ...] = tuple(ch.key_pad for ch in MIC_PRE_CHANNELS)
+
+SET_CHANNEL_MODE_ENTITY_KEYS: tuple[str, ...] = tuple(
+    sorted(
+        {
+            *MIX_INPUT_ENTITY_KEYS,
+            *(
+                key
+                for key, ref in ENTITY_REGISTRY.items()
+                if ref.kind == "mix_fader"
+                and ref.gain_ich is not None
+                and ref.gain_ich <= STEREO_CAPABLE_MAX_GAIN_ICH
+            ),
+        }
+    )
+)
+
 _METER_SLOT_TO_KEY: dict[int, str] = {
     ref.index: key for key, ref in ENTITY_REGISTRY.items() if ref.kind == "meter"
 }

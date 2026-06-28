@@ -8,6 +8,7 @@ import sys
 import textwrap
 
 from ultralite_mk5_lib.client import UltraLiteMk5
+from ultralite_mk5_lib.completion import readline_input, setup_interactive_completion
 from ultralite_mk5_lib.commands import (
     apply_set_channel_stereo_mode,
     apply_set_input_48v,
@@ -584,6 +585,7 @@ def _interactive_help(session: InteractiveSession, args: argparse.Namespace) -> 
 def run_interactive_loop(session: InteractiveSession) -> int:
     parser = build_interactive_parser()
     device = session.require_device()
+    setup_interactive_completion(prompt=PROMPT)
     print(
         f"Connected to {device.url}. Type 'help' or 'exit'.",
         file=sys.stderr,
@@ -591,7 +593,7 @@ def run_interactive_loop(session: InteractiveSession) -> int:
 
     while True:
         try:
-            line = input(PROMPT)
+            line = readline_input(PROMPT)
         except (EOFError, KeyboardInterrupt):
             print(file=sys.stderr)
             break

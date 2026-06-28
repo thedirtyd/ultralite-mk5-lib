@@ -47,7 +47,7 @@ With `config.yaml` in place, run commands directly. Start an interactive session
 python -m ultralite_mk5_lib connect
 ```
 
-At the `ultralite-mk5>` prompt:
+At the `ultralite-mk5>` prompt, Tab completes commands and entity keys; press Tab again to list all matches.
 
 ```
 ultralite-mk5> get-state
