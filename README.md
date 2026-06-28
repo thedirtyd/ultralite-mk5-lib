@@ -164,3 +164,11 @@ Entity key strings (`MIXBUSFADER_*`, `INPUTGAIN_*`, etc.) remain the stable iden
 
 - Password-protected devices are not supported.
 
+## Development
+
+Run the unit test suite (no device required):
+
+```bash
+python -m unittest discover -s tests -v
+```
+
