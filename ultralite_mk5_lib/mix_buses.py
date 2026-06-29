@@ -304,10 +304,24 @@ def _mix_channel_muted(
     return bool(value)
 
 
+def _mix_channel_soloed(
+    mix_solos: dict[int, int],
+    gain_ich: int | None,
+    gain_och: int,
+) -> bool | None:
+    if gain_ich is None:
+        return None
+    value = mix_solos.get(mix_fader_index(gain_ich, gain_och))
+    if value is None:
+        return None
+    return bool(value)
+
+
 def _fader_cell(
     *,
     gain: float | None,
     muted: bool | None,
+    soloed: bool | None = None,
 ) -> dict[str, Any]:
     cell: dict[str, Any] = {"gain": gain}
     db = mix_fader_gain_to_db(gain)
@@ -315,6 +329,8 @@ def _fader_cell(
         cell["db"] = db
     if muted is not None:
         cell["mute"] = bool(muted)
+    if soloed is not None:
+        cell["solo"] = bool(soloed)
     return cell
 
 
@@ -358,6 +374,7 @@ def build_mix_bus_fader_matrix(
     """
     mix_faders = props.get("mix_fader", {})
     mix_mutes = props.get("mix_mute", {})
+    mix_solos = props.get("mix_solo", {})
     mix_stereo = props.get("mix_stereo", {})
     bus_faders = props.get("bus_fader", {})
     bus_mute_indices = props.get("bus_mute", {})
@@ -387,6 +404,7 @@ def build_mix_bus_fader_matrix(
                     _fader_cell(
                         gain=_gain_at(ich, gain_och),
                         muted=_mix_channel_muted(mix_mutes, ich, gain_och),
+                        soloed=_mix_channel_soloed(mix_solos, ich, gain_och),
                     )
                 )
             elif col.kind == "host":
@@ -398,6 +416,9 @@ def build_mix_bus_fader_matrix(
                         _fader_cell(
                             gain=_gain_at(col.gain_ich, gain_och),
                             muted=_mix_channel_muted(mix_mutes, col.gain_ich, gain_och),
+                            soloed=_mix_channel_soloed(
+                                mix_solos, col.gain_ich, gain_och
+                            ),
                         )
                     )
             elif col.kind == "out":

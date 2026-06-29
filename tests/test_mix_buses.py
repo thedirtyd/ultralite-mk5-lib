@@ -87,6 +87,18 @@ class BuildMixBusFaderMatrixTests(unittest.TestCase):
         self.assertAlmostEqual(mic_cell["gain"], 0.75)
         self.assertIn("db", mic_cell)
 
+    def test_fader_cell_includes_solo_when_prop_present(self) -> None:
+        idx = mix_fader_index(0, 10)
+        props = minimal_props(mix_solo={idx: 1})
+        matrix = build_mix_bus_fader_matrix(
+            props,
+            sample_rate=48000,
+            optical_input_mode=OPTICAL_MODE_ADAT,
+        )
+        phones = next(b for b in matrix["buses"] if b["name"] == "phones")
+        mic_cell = phones["faders"][0]
+        self.assertTrue(mic_cell.get("solo"))
+
     def test_stereo_linked_hides_right_column(self) -> None:
         props = minimal_props()
         matrix = build_mix_bus_fader_matrix(
