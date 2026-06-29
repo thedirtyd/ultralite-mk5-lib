@@ -12,6 +12,7 @@ from ultralite_mk5_lib.protocol import (
     K_MAIN_TRIM_ID,
     K_MIX_FADER_ID,
     K_MIX_MUTE_ID,
+    K_MIX_SOLO_ID,
     K_OPTICAL_MODE_ID,
     K_SAMPLE_RATE_ID,
     build_ws_url,
@@ -22,6 +23,7 @@ from ultralite_mk5_lib.protocol import (
     make_main_trim_frame,
     make_mix_fader_frame,
     make_mix_mute_frame,
+    make_mix_solo_frame,
     make_optical_mode_frame,
     make_sample_rate_frame,
     parse_optical_mode,
@@ -114,6 +116,14 @@ class MakeFrameTests(unittest.TestCase):
         frame = make_mix_mute_frame(5, True)
         assert_frame_header(frame, K_MIX_MUTE_ID, 5)
         self.assertEqual(frame[6], 1)
+
+    def test_mix_solo_frame(self) -> None:
+        frame = make_mix_solo_frame(42, True)
+        assert_frame_header(frame, K_MIX_SOLO_ID, 42)
+        self.assertEqual(frame[6], 1)
+
+        frame_off = make_mix_solo_frame(42, False)
+        self.assertEqual(frame_off[6], 0)
 
     def test_bus_mute_frame(self) -> None:
         frame = make_bus_mute_frame(0, False)

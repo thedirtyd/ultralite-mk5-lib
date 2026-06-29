@@ -6,11 +6,13 @@ import shutil
 import sys
 
 from ultralite_mk5_lib.entities import (
+    CLEAR_MIX_SOLO_KEYS,
     INPUT_48V_ENTITY_KEYS,
     INPUT_PAD_ENTITY_KEYS,
     SET_CHANNEL_MODE_ENTITY_KEYS,
     SET_LEVEL_ENTITY_KEYS,
     SET_MUTE_ENTITY_KEYS,
+    SET_SOLO_ENTITY_KEYS,
     SOLO_OUTPUT_BUS_KEYS,
 )
 from ultralite_mk5_lib.protocol import VALID_SAMPLE_RATES
@@ -20,12 +22,25 @@ try:
 except ImportError:  # pragma: no cover - Windows without pyreadline
     readline = None  # type: ignore[assignment]
 
+_SOLO_VALUE_CHOICES: tuple[str, ...] = (
+    "solo",
+    "unsolo",
+    "on",
+    "off",
+    "true",
+    "false",
+    "1",
+    "0",
+)
+
 _COMMAND_ENTITY_KEYS: dict[str, tuple[str, ...]] = {
     "set-level": SET_LEVEL_ENTITY_KEYS,
     "set-mute": SET_MUTE_ENTITY_KEYS,
+    "set-solo": SET_SOLO_ENTITY_KEYS,
     "set-48v": INPUT_48V_ENTITY_KEYS,
     "set-pad": INPUT_PAD_ENTITY_KEYS,
     "solo-output-bus": SOLO_OUTPUT_BUS_KEYS,
+    "clear-mix-solo": CLEAR_MIX_SOLO_KEYS,
     "set-channel-mode": SET_CHANNEL_MODE_ENTITY_KEYS,
 }
 
@@ -221,6 +236,13 @@ def completion_candidates(line: str, endidx: int) -> list[str]:
             return _filter_prefix(_MUTE_VALUE_CHOICES, prefix)
         return []
 
+    if command == "set-solo":
+        if token_index == 1:
+            return _entity_candidates(command, prefix)
+        if token_index == 2:
+            return _filter_prefix(_SOLO_VALUE_CHOICES, prefix)
+        return []
+
     if command == "set-48v":
         if token_index == 1:
             return _entity_candidates(command, prefix)
@@ -236,6 +258,11 @@ def completion_candidates(line: str, endidx: int) -> list[str]:
         return []
 
     if command == "solo-output-bus":
+        if token_index == 1:
+            return _entity_candidates(command, prefix)
+        return []
+
+    if command == "clear-mix-solo":
         if token_index == 1:
             return _entity_candidates(command, prefix)
         return []

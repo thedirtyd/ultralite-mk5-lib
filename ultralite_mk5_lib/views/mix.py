@@ -9,6 +9,7 @@ from ultralite_mk5_lib.buses import stereo_bus_muted
 from ultralite_mk5_lib.entities import resolve_entity, resolve_stereo_input_gain_ich
 from ultralite_mk5_lib.enums import Buses, InputPairs, Inputs
 from ultralite_mk5_lib.mix_buses import (
+    NUM_MIX_INPUTS,
     STEREO_CAPABLE_MAX_GAIN_ICH,
     db_to_linear_gain,
     mix_fader_gain_to_db,
@@ -20,6 +21,7 @@ from ultralite_mk5_lib.protocol import (
     make_bus_mute_frame,
     make_mix_fader_frame,
     make_mix_mute_frame,
+    make_mix_solo_frame,
     make_mix_stereo_frame,
 )
 from ultralite_mk5_lib.views.transport import send_binary, send_bus_mute_local, send_prop_local
@@ -95,6 +97,23 @@ class CrosspointFader:
         frame = make_mix_mute_frame(self.flat_index, muted)
         send_binary(self._device, frame)
         send_prop_local(self._device, "mix_mute", self.flat_index, 1 if muted else 0)
+
+    @property
+    def soloed(self) -> bool | None:
+        mix_solos = self._device.state.props.get("mix_solo", {})
+        raw = mix_solos.get(self.flat_index)
+        if raw is None:
+            return None
+        return bool(raw)
+
+    @soloed.setter
+    def soloed(self, value: bool) -> None:
+        self.set_soloed(value)
+
+    def set_soloed(self, soloed: bool) -> None:
+        frame = make_mix_solo_frame(self.flat_index, soloed)
+        send_binary(self._device, frame)
+        send_prop_local(self._device, "mix_solo", self.flat_index, 1 if soloed else 0)
 
     def set_level_token(self, level: str) -> LevelCommand:
         command = prepare_level_command(self._entity_key(), level)
@@ -347,6 +366,16 @@ class BusView:
         send_binary(self._device, payload)
         for index, muted in pairs:
             send_bus_mute_local(self._device, index, muted)
+
+    def clear_solos(self) -> None:
+        """Clear all kiMixSolo flags on this bus (CueMix clearBusSolos)."""
+        start = mix_fader_index(0, self._gain_och)
+        payload = b"".join(
+            make_mix_solo_frame(start + c, False) for c in range(NUM_MIX_INPUTS)
+        )
+        send_binary(self._device, payload)
+        for c in range(NUM_MIX_INPUTS):
+            send_prop_local(self._device, "mix_solo", start + c, 0)
 
     def _channel(self, selector: ChannelSelector) -> BusChannelHandle:
         if isinstance(selector, InputPairs):

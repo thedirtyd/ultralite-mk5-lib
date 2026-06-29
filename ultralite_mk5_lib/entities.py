@@ -195,6 +195,18 @@ SOLO_OUTPUT_BUS_KEYS: tuple[str, ...] = tuple(
     if ref.kind == "bus_fader" and key != "MIXBUSFADER_REVERB_OUT"
 )
 
+SET_SOLO_ENTITY_KEYS: tuple[str, ...] = tuple(
+    key
+    for key, ref in sorted(ENTITY_REGISTRY.items())
+    if ref.kind == "mix_fader"
+)
+
+CLEAR_MIX_SOLO_KEYS: tuple[str, ...] = tuple(
+    key
+    for key, ref in sorted(ENTITY_REGISTRY.items())
+    if ref.kind == "bus_fader"
+)
+
 MIX_INPUT_ENTITY_KEYS: tuple[str, ...] = tuple(
     sorted(ch.key for ch in MIX_INPUT_CHANNELS)
 )

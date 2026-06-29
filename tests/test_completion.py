@@ -10,8 +10,10 @@ from ultralite_mk5_lib.completion import (
     readline_matches,
 )
 from ultralite_mk5_lib.entities import (
+    CLEAR_MIX_SOLO_KEYS,
     INPUT_48V_ENTITY_KEYS,
     SET_LEVEL_ENTITY_KEYS,
+    SET_SOLO_ENTITY_KEYS,
     SOLO_OUTPUT_BUS_KEYS,
 )
 from ultralite_mk5_lib.interactive import COMMAND_ALIASES, INTERACTIVE_COMMANDS
@@ -54,6 +56,19 @@ class CompletionCandidatesTests(unittest.TestCase):
         matches = completion_candidates(line, len(line))
         self.assertEqual(matches, list(SOLO_OUTPUT_BUS_KEYS))
         self.assertNotIn("MIXBUSFADER_REVERB_OUT", matches)
+
+    def test_set_solo_lists_crosspoint_keys(self) -> None:
+        line = "set-solo "
+        matches = completion_candidates(line, len(line))
+        self.assertEqual(matches, list(SET_SOLO_ENTITY_KEYS))
+        self.assertIn("MIXBUSFADER_MAIN0102_REVERB", matches)
+        self.assertNotIn("MIXBUSFADER_MAIN0102_OUT", matches)
+
+    def test_clear_mix_solo_includes_reverb_out(self) -> None:
+        line = "clear-mix-solo "
+        matches = completion_candidates(line, len(line))
+        self.assertEqual(matches, list(CLEAR_MIX_SOLO_KEYS))
+        self.assertIn("MIXBUSFADER_REVERB_OUT", matches)
 
     def test_set_channel_mode_mixinput_prefix(self) -> None:
         line = "set-channel-mode MIXINPUT_"

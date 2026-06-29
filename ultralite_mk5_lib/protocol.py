@@ -27,6 +27,9 @@ K_INPUT_48V_ID = 5004
 K_OUTPUT_TRIM_ID = 5000
 K_MAIN_TRIM_ID = 5011
 
+# kiMixSolo in dev.js
+K_MIX_SOLO_ID = 1018
+
 # kiMixMute in dev.js
 K_MIX_MUTE_ID = 1019
 
@@ -212,6 +215,10 @@ def make_optical_mode_frame(index: int, mode: int) -> bytes:
 
 def make_bus_mute_frame(index: int, muted: bool) -> bytes:
     return make_byte_property(K_BUS_MUTE_ID, index, 1 if muted else 0)
+
+
+def make_mix_solo_frame(index: int, soloed: bool) -> bytes:
+    return make_byte_property(K_MIX_SOLO_ID, index, 1 if soloed else 0)
 
 
 def make_mix_mute_frame(index: int, muted: bool) -> bytes:

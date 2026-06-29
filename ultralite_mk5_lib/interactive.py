@@ -18,6 +18,8 @@ from ultralite_mk5_lib.commands import (
     apply_set_optical_input_mode,
     apply_set_optical_output_mode,
     apply_set_sample_rate,
+    apply_set_solo,
+    apply_clear_mix_solo,
     apply_solo_output_bus,
 )
 from ultralite_mk5_lib.entities import ALL_ENTITY_KEYS, resolve_entity
@@ -29,6 +31,7 @@ from ultralite_mk5_lib.input_toggles import (
 from ultralite_mk5_lib.levels import format_level_summary, fix_set_level_argv
 from ultralite_mk5_lib.mix_buses import STEREO_CAPABLE_MAX_GAIN_ICH
 from ultralite_mk5_lib.mutes import DEFAULT_MUTE_VALUE, format_mute_summary
+from ultralite_mk5_lib.solos import DEFAULT_SOLO_VALUE, format_solo_summary
 from ultralite_mk5_lib.protocol import (
     normalize_optical_mode,
     optical_mode_choices_text,
@@ -48,10 +51,12 @@ INTERACTIVE_COMMANDS = (
     "set-level",
     "set-channel-mode",
     "set-mute",
+    "set-solo",
     "set-48v",
     "set-pad",
     "list-entities",
     "solo-output-bus",
+    "clear-mix-solo",
     "get-state",
     "monitor-meters",
     "help",
@@ -158,6 +163,16 @@ def run_solo_output_bus(device: UltraLiteMk5, key: str) -> None:
     print(f"{key} solo (all other buses muted)")
 
 
+def run_set_solo(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
+    command = apply_set_solo(device, key, value)
+    print(format_solo_summary(command))
+
+
+def run_clear_mix_solo(device: UltraLiteMk5, key: str) -> None:
+    apply_clear_mix_solo(device, key)
+    print(f"Cleared mix solo on bus {key}")
+
+
 def run_list_entities() -> None:
     for key in ALL_ENTITY_KEYS:
         print(key)
@@ -257,6 +272,26 @@ def _add_set_mute_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_set_solo_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "key",
+        help="Entity key (MIXBUSFADER_* crosspoint, not *_OUT)",
+    )
+    parser.add_argument(
+        "value",
+        nargs="?",
+        default=DEFAULT_SOLO_VALUE,
+        help="solo/on/true/1 or unsolo/off/false/0 (default: solo)",
+    )
+
+
+def _add_clear_mix_solo_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "key",
+        help="Output-bus entity key (MIXBUSFADER_*_OUT, including reverb)",
+    )
+
+
 def _add_set_input_toggle_args(parser: argparse.ArgumentParser, *, kind: str) -> None:
     parser.add_argument(
         "key",
@@ -342,6 +377,13 @@ def _command_help_lines() -> dict[str, list[str]]:
             "  Examples: set-mute MIXBUSFADER_MAIN0102_LINEIN03",
             "            set-mute MIXBUSFADER_MAIN0102_OUT unmute",
         ],
+        "set-solo": [
+            "set-solo KEY [VALUE]",
+            "  VALUE: solo/on/true/1 or unsolo/off/false/0 (default: solo)",
+            "  Solo is per mix bus (kiMixSolo); mute state is preserved.",
+            "  Examples: set-solo MIXBUSFADER_MAIN0102_LINEIN03",
+            "            set-solo MIXBUSFADER_REVERB_REVERB unsolo",
+        ],
         "set-48v": [
             "set-48v KEY [VALUE]",
             "  KEY: INPUT48V_MICLINEIN01 or INPUT48V_MICLINEIN02",
@@ -360,7 +402,13 @@ def _command_help_lines() -> dict[str, list[str]]:
             "solo-output-bus KEY",
             "  KEY: MIXBUSFADER_*_OUT entity key (see list-entities)",
             "  Example: solo-output-bus MIXBUSFADER_MAIN0102_OUT",
-            "  Reverb is not a valid target; its mute state is unchanged.",
+            "  Legacy: unmutes target bus, mutes all others (reverb unchanged).",
+        ],
+        "clear-mix-solo": [
+            "clear-mix-solo KEY",
+            "  KEY: MIXBUSFADER_*_OUT entity key (including reverb)",
+            "  Example: clear-mix-solo MIXBUSFADER_MAIN0102_OUT",
+            "  Clears all kiMixSolo flags on that bus only.",
         ],
         "get-state": [
             "get-state [--json]",
@@ -446,6 +494,10 @@ def build_interactive_parser() -> argparse.ArgumentParser:
     _add_set_mute_args(set_mute)
     set_mute.set_defaults(func=_interactive_set_mute)
 
+    set_solo = add_command("set-solo", help="Solo or unsolo a mix crosspoint")
+    _add_set_solo_args(set_solo)
+    set_solo.set_defaults(func=_interactive_set_solo)
+
     set_48v = add_command("set-48v", help="Set 48V phantom power by entity key")
     _add_set_input_toggle_args(set_48v, kind="48V")
     set_48v.set_defaults(func=_interactive_set_48v)
@@ -466,6 +518,13 @@ def build_interactive_parser() -> argparse.ArgumentParser:
     )
     _add_solo_output_bus_args(solo_bus)
     solo_bus.set_defaults(func=_interactive_solo_output_bus)
+
+    clear_mix_solo = add_command(
+        "clear-mix-solo",
+        help="Clear all crosspoint solos on one mix output bus",
+    )
+    _add_clear_mix_solo_args(clear_mix_solo)
+    clear_mix_solo.set_defaults(func=_interactive_clear_mix_solo)
 
     get_state = add_command(
         "get-state",
@@ -568,6 +627,16 @@ def _interactive_solo_output_bus(
     session: InteractiveSession, args: argparse.Namespace
 ) -> None:
     run_solo_output_bus(session.require_device(), args.key)
+
+
+def _interactive_set_solo(session: InteractiveSession, args: argparse.Namespace) -> None:
+    run_set_solo(session.require_device(), args.key, args.value)
+
+
+def _interactive_clear_mix_solo(
+    session: InteractiveSession, args: argparse.Namespace
+) -> None:
+    run_clear_mix_solo(session.require_device(), args.key)
 
 
 def _interactive_get_state(session: InteractiveSession, args: argparse.Namespace) -> None:

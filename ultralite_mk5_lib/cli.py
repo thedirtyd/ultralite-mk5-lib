@@ -20,6 +20,8 @@ from ultralite_mk5_lib.interactive import (
     _add_monitor_meters_args,
     _add_set_optical_mode_args,
     _add_solo_output_bus_args,
+    _add_set_solo_args,
+    _add_clear_mix_solo_args,
     _add_set_channel_mode_args,
     _add_set_level_args,
     _add_set_mute_args,
@@ -37,6 +39,8 @@ from ultralite_mk5_lib.interactive import (
     run_set_optical_input_mode,
     run_set_optical_output_mode,
     run_set_sample_rate,
+    run_set_solo,
+    run_clear_mix_solo,
     run_solo_output_bus,
 )
 from ultralite_mk5_lib.protocol import LOCALHOSTS
@@ -184,6 +188,20 @@ def _cmd_solo_output_bus(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_set_solo(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_set_solo(device, args.key, args.value)
+        print(f" on {device.url}")
+    return 0
+
+
+def _cmd_clear_mix_solo(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_clear_mix_solo(device, args.key)
+        print(f" on {device.url}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ultralite-mk5",
@@ -286,6 +304,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_solo_output_bus_args(solo_bus)
     solo_bus.set_defaults(func=_cmd_solo_output_bus)
+
+    set_solo = subparsers.add_parser(
+        "set-solo",
+        help="Solo or unsolo a mix crosspoint (kiMixSolo)",
+    )
+    _add_set_solo_args(set_solo)
+    set_solo.set_defaults(func=_cmd_set_solo)
+
+    clear_mix_solo = subparsers.add_parser(
+        "clear-mix-solo",
+        help="Clear all crosspoint solos on one mix output bus",
+    )
+    _add_clear_mix_solo_args(clear_mix_solo)
+    clear_mix_solo.set_defaults(func=_cmd_clear_mix_solo)
 
     return parser
 

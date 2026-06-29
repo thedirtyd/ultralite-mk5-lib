@@ -8,6 +8,11 @@ from ultralite_mk5_lib.entities import resolve_entity
 from ultralite_mk5_lib.input_toggles import InputToggleCommand
 from ultralite_mk5_lib.levels import LevelCommand
 from ultralite_mk5_lib.mutes import MuteCommand, prepare_mute_command, resolve_solo_bus_entity
+from ultralite_mk5_lib.solos import (
+    SoloCommand,
+    prepare_solo_command,
+    resolve_clear_mix_solo_entity,
+)
 from ultralite_mk5_lib.views.transport import send_binary, send_bus_mute_local, send_prop_local
 
 if TYPE_CHECKING:
@@ -61,6 +66,31 @@ def apply_solo_output_bus(device: UltraLiteMk5, key: str) -> None:
     send_binary(device, payload)
     for index, muted in pairs:
         send_bus_mute_local(device, index, muted)
+
+
+def apply_set_solo(
+    device: UltraLiteMk5,
+    key: str,
+    value: str | None = None,
+) -> SoloCommand:
+    """Solo or unsolo one mix crosspoint (kiMixSolo)."""
+    command = prepare_solo_command(key, value)
+    send_binary(device, command.frame)
+    send_prop_local(
+        device,
+        command.prop_key,
+        command.index,
+        1 if command.soloed else 0,
+    )
+    return command
+
+
+def apply_clear_mix_solo(device: UltraLiteMk5, key: str) -> None:
+    """Clear all kiMixSolo flags on one mix output bus."""
+    from ultralite_mk5_lib.enums import Buses
+
+    _, gain_och = resolve_clear_mix_solo_entity(key)
+    device.mix[Buses(gain_och)].clear_solos()
 
 
 def apply_set_input_48v(
