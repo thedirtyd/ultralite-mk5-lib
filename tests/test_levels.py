@@ -53,7 +53,7 @@ class TrimRoundTripTests(unittest.TestCase):
 
 class PrepareLevelCommandTests(unittest.TestCase):
     def test_mix_fader_db(self) -> None:
-        cmd = prepare_level_command("MIXBUSFADER_PHONES_MICLINEIN01", "-12db")
+        cmd = prepare_level_command("MIXBUSFADER_PHONES_MICIN01", "-12db")
         self.assertEqual(cmd.prop_key, "mix_fader")
         self.assertEqual(cmd.index, 320)
         assert_frame_header(cmd.frame, K_MIX_FADER_ID, 320)
@@ -65,7 +65,7 @@ class PrepareLevelCommandTests(unittest.TestCase):
         self.assertAlmostEqual(cmd.wire_value, 0.5)
 
     def test_input_gain(self) -> None:
-        cmd = prepare_level_command("INPUTGAIN_MICLINEIN01", "12")
+        cmd = prepare_level_command("INPUTGAIN_MICIN01", "12")
         self.assertEqual(cmd.prop_key, "input_gain")
         self.assertEqual(cmd.wire_value, 12)
 
@@ -82,7 +82,7 @@ class PrepareLevelCommandTests(unittest.TestCase):
 
     def test_invalid_key_raises(self) -> None:
         with self.assertRaises(ValueError):
-            prepare_level_command("METER_INPUT_MICLINEIN01", "0")
+            prepare_level_command("METER_INPUT_MICIN01", "0")
 
     def test_fader_gain_out_of_range_raises(self) -> None:
         with self.assertRaises(ValueError):

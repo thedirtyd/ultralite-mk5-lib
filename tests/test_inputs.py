@@ -13,7 +13,7 @@ class BuildInputGainsTests(unittest.TestCase):
         rows = build_input_gains(minimal_props())
         self.assertEqual(len(rows), 8)
         name, db, min_db, max_db = rows[0]
-        self.assertEqual(name, "Mic/Line In 1")
+        self.assertEqual(name, "Mic In 1")
         self.assertEqual(db, 12.0)
         self.assertEqual(min_db, 0.0)
         self.assertEqual(max_db, 74.0)
@@ -28,11 +28,11 @@ class BuildMicPreStateTests(unittest.TestCase):
         rows = build_mic_pre_state(minimal_props())
         self.assertEqual(len(rows), 2)
         mic1 = rows[0]
-        self.assertEqual(mic1["name"], "Mic/Line In 1")
+        self.assertEqual(mic1["name"], "Mic In 1")
         self.assertTrue(mic1["48v"])
         self.assertFalse(mic1["pad"])
         self.assertEqual(mic1["jack"], "mic")
-        self.assertEqual(mic1["key_48v"], "INPUT48V_MICLINEIN01")
+        self.assertEqual(mic1["key_48v"], "INPUT48V_MICIN01")
 
     def test_line_jack_mode(self) -> None:
         rows = build_mic_pre_state(minimal_props())

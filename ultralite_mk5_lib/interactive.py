@@ -295,7 +295,7 @@ def _add_clear_mix_solo_args(parser: argparse.ArgumentParser) -> None:
 def _add_set_input_toggle_args(parser: argparse.ArgumentParser, *, kind: str) -> None:
     parser.add_argument(
         "key",
-        help=f"Entity key (INPUT{kind}_MICLINEIN01 or INPUT{kind}_MICLINEIN02)",
+        help=f"Entity key (INPUT{kind}_MICIN01 or INPUT{kind}_MICIN02)",
     )
     parser.add_argument(
         "value",
@@ -355,7 +355,7 @@ def _command_help_lines() -> dict[str, list[str]]:
             "  Examples: set-level MIXBUSFADER_MAIN0102_LINEIN03 0.75",
             "            set-level MIXBUSFADER_MAIN0102_OUT -6db",
             "            set-level VOLUME_MAIN -inf",
-            "            set-level INPUTGAIN_MICLINEIN01 12",
+            "            set-level INPUTGAIN_MICIN01 12",
         ],
         "set-channel-mode": [
             "set-channel-mode KEY stereo|mono",
@@ -386,17 +386,17 @@ def _command_help_lines() -> dict[str, list[str]]:
         ],
         "set-48v": [
             "set-48v KEY [VALUE]",
-            "  KEY: INPUT48V_MICLINEIN01 or INPUT48V_MICLINEIN02",
+            "  KEY: INPUT48V_MICIN01 or INPUT48V_MICIN02",
             "  VALUE: on/true/1 or off/false/0 (default: on)",
-            "  Examples: set-48v INPUT48V_MICLINEIN01 on",
-            "            set-48v INPUT48V_MICLINEIN02 off",
+            "  Examples: set-48v INPUT48V_MICIN01 on",
+            "            set-48v INPUT48V_MICIN02 off",
         ],
         "set-pad": [
             "set-pad KEY [VALUE]",
-            "  KEY: INPUTPAD_MICLINEIN01 or INPUTPAD_MICLINEIN02",
+            "  KEY: INPUTPAD_MICIN01 or INPUTPAD_MICIN02",
             "  VALUE: on/true/1 or off/false/0 (default: on)",
-            "  Examples: set-pad INPUTPAD_MICLINEIN01 on",
-            "            set-pad INPUTPAD_MICLINEIN02 off",
+            "  Examples: set-pad INPUTPAD_MICIN01 on",
+            "            set-pad INPUTPAD_MICIN02 off",
         ],
         "solo-output-bus": [
             "solo-output-bus KEY",

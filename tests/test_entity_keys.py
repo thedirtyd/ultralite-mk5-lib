@@ -14,7 +14,7 @@ from ultralite_mk5_lib.entity_keys import (
 
 class NormalizeKeyPartTests(unittest.TestCase):
     def test_strips_punctuation(self) -> None:
-        self.assertEqual(normalize_key_part("Mic/Line In 1"), "MICLINEIN01")
+        self.assertEqual(normalize_key_part("Mic In 1"), "MICIN01")
 
     def test_zero_pads_single_digits(self) -> None:
         self.assertEqual(normalize_key_part("Main 1-2"), "MAIN0102")
@@ -23,14 +23,14 @@ class NormalizeKeyPartTests(unittest.TestCase):
 class EntityKeyGenerationTests(unittest.TestCase):
     def test_meter_entity_key(self) -> None:
         self.assertEqual(
-            meter_entity_key("Inputs - Mic/Line In 1"),
-            "METER_INPUT_MICLINEIN01",
+            meter_entity_key("Inputs - Mic In 1"),
+            "METER_INPUT_MICIN01",
         )
 
     def test_input_gain_entity_key(self) -> None:
         self.assertEqual(
-            input_gain_entity_key("Mic/Line In 1"),
-            "INPUTGAIN_MICLINEIN01",
+            input_gain_entity_key("Mic In 1"),
+            "INPUTGAIN_MICIN01",
         )
 
     def test_mix_bus_fader_entity_key(self) -> None:

@@ -81,8 +81,8 @@ def _meter_slots() -> tuple[MeterSlot, ...]:
         order += 1
 
     for slot, name in (
-        (37, "Inputs - Mic/Line In 1"),
-        (32, "Inputs - Mic/Line In 2"),
+        (37, "Inputs - Mic In 1"),
+        (32, "Inputs - Mic In 2"),
         (38, "Inputs - Line In 3"),
         (39, "Inputs - Line In 4"),
         (35, "Inputs - Line In 5"),
@@ -101,8 +101,8 @@ def _meter_slots() -> tuple[MeterSlot, ...]:
     add(0, "Mix - USB Host In 1")
     add(1, "Mix - USB Host In 2")
     for slot, name in (
-        (50, "Mix - Mic/Line In 1 post-FX"),
-        (51, "Mix - Mic/Line In 2 post-FX"),
+        (50, "Mix - Mic In 1 post-FX"),
+        (51, "Mix - Mic In 2 post-FX"),
         (52, "Mix - Line In 3 post-FX"),
         (53, "Mix - Line In 4 post-FX"),
         (58, "Mix - Line In 5 post-FX"),

@@ -29,7 +29,7 @@ class ParseToggleValueTests(unittest.TestCase):
 
 class Prepare48vCommandTests(unittest.TestCase):
     def test_default_on(self) -> None:
-        cmd = prepare_48v_command("INPUT48V_MICLINEIN01")
+        cmd = prepare_48v_command("INPUT48V_MICIN01")
         self.assertTrue(cmd.on)
         self.assertEqual(cmd.index, 0)
         assert_frame_header(cmd.frame, K_INPUT_48V_ID, 0)
@@ -37,7 +37,7 @@ class Prepare48vCommandTests(unittest.TestCase):
     def test_jack_detect_blocks_line_input(self) -> None:
         with self.assertRaises(ValueError):
             prepare_48v_command(
-                "INPUT48V_MICLINEIN02",
+                "INPUT48V_MICIN02",
                 jack_detect={1: 1},
             )
 
@@ -48,13 +48,13 @@ class Prepare48vCommandTests(unittest.TestCase):
 
 class PreparePadCommandTests(unittest.TestCase):
     def test_pad_off(self) -> None:
-        cmd = prepare_pad_command("INPUTPAD_MICLINEIN01", "off")
+        cmd = prepare_pad_command("INPUTPAD_MICIN01", "off")
         self.assertFalse(cmd.on)
         assert_frame_header(cmd.frame, K_INPUT_PAD_ID, 0)
 
     def test_wrong_key_raises(self) -> None:
         with self.assertRaises(ValueError):
-            prepare_pad_command("INPUTGAIN_MICLINEIN01")
+            prepare_pad_command("INPUTGAIN_MICIN01")
 
 
 if __name__ == "__main__":

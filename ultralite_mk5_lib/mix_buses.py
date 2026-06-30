@@ -167,7 +167,7 @@ def _mix_matrix_columns(
     cols: list[MixMatrixColumn] = []
 
     _append_mono_channels(
-        cols, prefix="mic", label_prefix="Mic/Line In ", start_ich=0, count=2
+        cols, prefix="mic", label_prefix="Mic In ", start_ich=0, count=2
     )
     for line_num in range(3, 9):
         cols.append(

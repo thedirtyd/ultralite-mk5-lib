@@ -68,7 +68,7 @@ class InputChannel:
 
 
 class MicInputChannel(InputChannel):
-    """Mic/Line In 1–2 with phantom power and pad."""
+    """Mic In 1–2 with phantom power and pad."""
 
     def __init__(
         self,

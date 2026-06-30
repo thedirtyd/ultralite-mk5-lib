@@ -19,8 +19,8 @@ from tests.helpers import minimal_props, minimal_snapshot
 class TestMeterDisplayName(unittest.TestCase):
     def test_stereo_linked_mic_pair_shares_label(self) -> None:
         snap = minimal_snapshot()
-        left = meter_display_name("METER_INPUT_MICLINEIN01", snap)
-        right = meter_display_name("METER_INPUT_MICLINEIN02", snap)
+        left = meter_display_name("METER_INPUT_MICIN01", snap)
+        right = meter_display_name("METER_INPUT_MICIN02", snap)
         self.assertEqual(left, right)
         self.assertIn("1/2", left)
 
@@ -64,17 +64,17 @@ class TestMeterDisplayName(unittest.TestCase):
 class TestBuildMeterNames(unittest.TestCase):
     def test_includes_layout_active_keys(self) -> None:
         names = build_meter_names(minimal_snapshot())
-        self.assertIn("METER_INPUT_MICLINEIN01", names)
+        self.assertIn("METER_INPUT_MICIN01", names)
         self.assertIn("METER_INPUT_OPTICAL01", names)
-        self.assertIn("mono", names["METER_INPUT_MICLINEIN01"])
+        self.assertIn("mono", names["METER_INPUT_MICIN01"])
 
     def test_stereo_pair_has_mono_and_stereo(self) -> None:
         names = build_meter_names(minimal_snapshot())
-        left = names["METER_INPUT_MICLINEIN01"]
-        right = names["METER_INPUT_MICLINEIN02"]
-        self.assertEqual(left["mono"], "Inputs - Mic/Line In 1")
-        self.assertEqual(right["mono"], "Inputs - Mic/Line In 2")
-        self.assertEqual(left["stereo"], "Inputs - Mic/Line In 1/2")
+        left = names["METER_INPUT_MICIN01"]
+        right = names["METER_INPUT_MICIN02"]
+        self.assertEqual(left["mono"], "Inputs - Mic In 1")
+        self.assertEqual(right["mono"], "Inputs - Mic In 2")
+        self.assertEqual(left["stereo"], "Inputs - Mic In 1/2")
         self.assertEqual(right["stereo"], left["stereo"])
 
     def test_output_trim_has_mono_only(self) -> None:

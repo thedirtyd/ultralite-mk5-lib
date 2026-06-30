@@ -29,7 +29,7 @@ class ParseMuteValueTests(unittest.TestCase):
 
 class PrepareMuteCommandTests(unittest.TestCase):
     def test_mix_fader_mute(self) -> None:
-        cmd = prepare_mute_command("MIXBUSFADER_PHONES_MICLINEIN01")
+        cmd = prepare_mute_command("MIXBUSFADER_PHONES_MICIN01")
         self.assertEqual(cmd.prop_key, "mix_mute")
         self.assertTrue(cmd.muted)
         assert_frame_header(cmd.frame, K_MIX_MUTE_ID, cmd.index)
@@ -43,7 +43,7 @@ class PrepareMuteCommandTests(unittest.TestCase):
 
     def test_invalid_key_raises(self) -> None:
         with self.assertRaises(ValueError):
-            prepare_mute_command("INPUTGAIN_MICLINEIN01")
+            prepare_mute_command("INPUTGAIN_MICIN01")
 
 
 class ResolveSoloBusEntityTests(unittest.TestCase):

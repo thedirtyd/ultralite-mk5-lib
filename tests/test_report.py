@@ -33,7 +33,7 @@ class BuildStateReportTests(unittest.TestCase):
         phones = next(b for b in buses if b["name"] == "phones")
         self.assertEqual(phones["key"], "PHONES")
         fader_keys = [f["key"] for f in phones["faders"] if "key" in f]
-        self.assertIn("MIXBUSFADER_PHONES_MICLINEIN01", fader_keys)
+        self.assertIn("MIXBUSFADER_PHONES_MICIN01", fader_keys)
 
     def test_meters_include_visible_slots(self) -> None:
         report = build_state_report(minimal_snapshot())

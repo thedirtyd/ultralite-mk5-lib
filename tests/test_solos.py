@@ -37,7 +37,7 @@ class ParseSoloValueTests(unittest.TestCase):
 
 class PrepareSoloCommandTests(unittest.TestCase):
     def test_mix_crosspoint_solo(self) -> None:
-        cmd = prepare_solo_command("MIXBUSFADER_PHONES_MICLINEIN01")
+        cmd = prepare_solo_command("MIXBUSFADER_PHONES_MICIN01")
         self.assertEqual(cmd.prop_key, "mix_solo")
         self.assertTrue(cmd.soloed)
         assert_frame_header(cmd.frame, K_MIX_SOLO_ID, cmd.index)

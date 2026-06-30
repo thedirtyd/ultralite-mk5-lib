@@ -119,7 +119,7 @@ class BuildMixBusFaderMatrixTests(unittest.TestCase):
             sample_rate=48000,
             optical_input_mode=OPTICAL_MODE_ADAT,
         )
-        mic2_col = next(c for c in matrix["columns"] if c["label"] == "Mic/Line In 2")
+        mic2_col = next(c for c in matrix["columns"] if c["label"] == "Mic In 2")
         self.assertTrue(mic2_col.get("stereo_hidden"))
 
 

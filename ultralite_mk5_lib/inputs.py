@@ -28,7 +28,7 @@ class InputGainChannel:
 
 @dataclass(frozen=True, slots=True)
 class MicPreChannel:
-    """Mic preamp controls (48V, pad) for Mic/Line In 1–2."""
+    """Mic preamp controls (48V, pad) for Mic In 1–2."""
 
     name: str
     index: int
@@ -51,8 +51,8 @@ def _mic_pre_channel(name: str, index: int) -> MicPreChannel:
 
 # Order matches iosetup.js Inputs view (Mic 1-2, then Line 3-8).
 INPUT_GAIN_CHANNELS: tuple[InputGainChannel, ...] = (
-    _input_gain_channel("Mic/Line In 1", 0, MIC_GAIN_MAX_DB),
-    _input_gain_channel("Mic/Line In 2", 1, MIC_GAIN_MAX_DB),
+    _input_gain_channel("Mic In 1", 0, MIC_GAIN_MAX_DB),
+    _input_gain_channel("Mic In 2", 1, MIC_GAIN_MAX_DB),
     _input_gain_channel("Line In 3", 2, LINE_GAIN_MAX_DB),
     _input_gain_channel("Line In 4", 3, LINE_GAIN_MAX_DB),
     _input_gain_channel("Line In 5", 4, LINE_GAIN_MAX_DB),
@@ -62,8 +62,8 @@ INPUT_GAIN_CHANNELS: tuple[InputGainChannel, ...] = (
 )
 
 MIC_PRE_CHANNELS: tuple[MicPreChannel, ...] = (
-    _mic_pre_channel("Mic/Line In 1", 0),
-    _mic_pre_channel("Mic/Line In 2", 1),
+    _mic_pre_channel("Mic In 1", 0),
+    _mic_pre_channel("Mic In 2", 1),
 )
 
 

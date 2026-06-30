@@ -6,7 +6,7 @@ from enum import Enum, IntEnum
 
 
 class Inputs(IntEnum):
-    """Analog input kiGain indices (Mic/Line 1–2, Line 3–8)."""
+    """Analog input kiGain indices (Mic In 1–2, Line 3–8)."""
 
     MicLineIn01 = 0
     MicLineIn02 = 1

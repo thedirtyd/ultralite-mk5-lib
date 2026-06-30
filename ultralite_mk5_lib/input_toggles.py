@@ -41,7 +41,7 @@ def parse_toggle_value(token: str) -> bool:
 def _validate_mic_pre_index(key: str, index: int) -> None:
     if index > _MIC_PRE_MAX_INDEX:
         raise ValueError(
-            f"{key!r} is only valid for Mic/Line In 1–2 (indices 0–1)"
+            f"{key!r} is only valid for Mic In 1–2 (indices 0–1)"
         )
 
 

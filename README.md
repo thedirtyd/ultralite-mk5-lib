@@ -56,11 +56,11 @@ ultralite-mk5> monitor-meters
 ultralite-mk5> set-sample-rate --rate 96
 ultralite-mk5> set-optical-input-mode adat
 ultralite-mk5> set-optical-output-mode toslink
-ultralite-mk5> set-level MIXBUSFADER_PHONES_MICLINEIN01 -12db
+ultralite-mk5> set-level MIXBUSFADER_PHONES_MICIN01 -12db
 ultralite-mk5> set-level MIXBUSFADER_MAIN0102_LINEIN03 0.75
 ultralite-mk5> set-level VOLUME_MAIN -48db
 ultralite-mk5> set-level VOLUME_MAIN -inf
-ultralite-mk5> set-level INPUTGAIN_MICLINEIN01 12
+ultralite-mk5> set-level INPUTGAIN_MICIN01 12
 ultralite-mk5> set-channel-mode MIXINPUT_OPTICAL01 stereo
 ultralite-mk5> set-channel-mode MIXINPUT_HOST0102 stereo
 ultralite-mk5> set-mute MIXBUSFADER_MAIN0102_OUT
@@ -139,7 +139,7 @@ with UltraLiteMk5("127.0.0.1", serial="ULM5FFF0EE") as device:
     # Or address the pair explicitly (always writes L and R)
     device.mix[Buses.Phones].channel[InputPairs.MicLineIn0102].fader.db = -12.0
     # Entity keys (same strings as CLI / list-entities) also work
-    device.mix.fader_by_key("MIXBUSFADER_PHONES_MICLINEIN01").db = -12.0
+    device.mix.fader_by_key("MIXBUSFADER_PHONES_MICIN01").db = -12.0
 
     device.mix[Buses.Main0102].out.db = -6.0
     device.mix[Buses.Phones].muted = False

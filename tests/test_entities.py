@@ -14,7 +14,7 @@ from ultralite_mk5_lib.entities import (
 
 class ResolveEntityTests(unittest.TestCase):
     def test_known_mix_fader(self) -> None:
-        ref = resolve_entity("MIXBUSFADER_PHONES_MICLINEIN01")
+        ref = resolve_entity("MIXBUSFADER_PHONES_MICIN01")
         self.assertEqual(ref.kind, "mix_fader")
         self.assertEqual(ref.index, 320)
         self.assertEqual(ref.gain_ich, 0)
@@ -31,12 +31,12 @@ class PropertyIndexTests(unittest.TestCase):
 
     def test_meter_raises(self) -> None:
         with self.assertRaises(ValueError):
-            property_index("METER_INPUT_MICLINEIN01")
+            property_index("METER_INPUT_MICIN01")
 
 
 class ResolveStereoInputGainIchTests(unittest.TestCase):
     def test_mix_input_key(self) -> None:
-        self.assertEqual(resolve_stereo_input_gain_ich("MIXINPUT_MICLINEIN01"), 0)
+        self.assertEqual(resolve_stereo_input_gain_ich("MIXINPUT_MICIN01"), 0)
 
     def test_mix_fader_crosspoint_key(self) -> None:
         self.assertEqual(
@@ -51,7 +51,7 @@ class ResolveStereoInputGainIchTests(unittest.TestCase):
 
 class DisplayNameTests(unittest.TestCase):
     def test_returns_cuemix_label(self) -> None:
-        self.assertEqual(display_name("INPUTGAIN_MICLINEIN01"), "Mic/Line In 1")
+        self.assertEqual(display_name("INPUTGAIN_MICIN01"), "Mic In 1")
 
 
 if __name__ == "__main__":
