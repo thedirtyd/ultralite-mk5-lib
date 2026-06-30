@@ -31,6 +31,24 @@ class TestMeterDisplayName(unittest.TestCase):
         self.assertEqual(left, right)
         self.assertEqual(left, "Inputs - Optical 1/2")
 
+    def test_stereo_linked_spdif_pair_shares_label(self) -> None:
+        snap = minimal_snapshot(props=minimal_props(mix_stereo={8: 1}))
+        left = meter_display_name("METER_INPUT_SPDIF01", snap)
+        right = meter_display_name("METER_INPUT_SPDIF02", snap)
+        self.assertEqual(left, right)
+        self.assertEqual(left, "Inputs - S/PDIF 1/2")
+
+    def test_unlinked_spdif_mono_labels(self) -> None:
+        snap = minimal_snapshot(props=minimal_props(mix_stereo={}))
+        self.assertEqual(
+            meter_display_name("METER_INPUT_SPDIF01", snap),
+            "Inputs - S/PDIF 1",
+        )
+        self.assertEqual(
+            meter_display_name("METER_INPUT_SPDIF02", snap),
+            "Inputs - S/PDIF 2",
+        )
+
     def test_unlinked_optical_mono_labels(self) -> None:
         snap = minimal_snapshot(props=minimal_props(mix_stereo={}))
         self.assertEqual(
@@ -87,6 +105,13 @@ class TestBuildMeterNames(unittest.TestCase):
         names = build_meter_names(minimal_snapshot())
         self.assertEqual(names["METER_INPUT_OPTICAL01"]["stereo"], "Inputs - Optical 1/2")
         self.assertEqual(names["METER_INPUT_OPTICAL02"]["mono"], "Inputs - Optical 2")
+
+    def test_spdif_pair_stereo_label(self) -> None:
+        names = build_meter_names(minimal_snapshot())
+        self.assertEqual(names["METER_INPUT_SPDIF01"]["mono"], "Inputs - S/PDIF 1")
+        self.assertEqual(names["METER_INPUT_SPDIF02"]["mono"], "Inputs - S/PDIF 2")
+        self.assertEqual(names["METER_INPUT_SPDIF01"]["stereo"], "Inputs - S/PDIF 1/2")
+        self.assertEqual(names["METER_INPUT_SPDIF02"]["stereo"], names["METER_INPUT_SPDIF01"]["stereo"])
 
     def test_192k_omits_optical_meters(self) -> None:
         snap = minimal_snapshot(sample_rate=192000)

@@ -37,7 +37,7 @@ class MixMatrixColumnsTests(unittest.TestCase):
     def test_48k_adat_includes_optical_and_spdif(self) -> None:
         cols = mix_matrix_columns(sample_rate=48000, optical_input_mode=OPTICAL_MODE_ADAT)
         labels = [c.label for c in cols]
-        self.assertIn("S/PDIF In L", labels)
+        self.assertIn("S/PDIF 1", labels)
         self.assertIn("Optical 1", labels)
         self.assertIn("Out", labels)
 
@@ -47,7 +47,7 @@ class MixMatrixColumnsTests(unittest.TestCase):
             optical_input_mode=OPTICAL_MODE_ADAT,
         )
         labels = [c.label for c in cols]
-        self.assertNotIn("S/PDIF In L", labels)
+        self.assertNotIn("S/PDIF 1", labels)
         self.assertNotIn("Optical 1", labels)
 
     def test_toslink_fewer_optical_channels(self) -> None:

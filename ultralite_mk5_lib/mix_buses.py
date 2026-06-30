@@ -180,8 +180,9 @@ def _mix_matrix_columns(
         )
 
     if _SPDIF_NUM_CH[sri] > 0:
-        cols.append(_mix_column("S/PDIF In L", "spdif-1", "input", 8))
-        cols.append(_mix_column("S/PDIF In R", "spdif-2", "input", 9))
+        _append_mono_channels(
+            cols, prefix="spdif", label_prefix="S/PDIF ", start_ich=8, count=2
+        )
 
     optical_ch = optical_input_meter_count(
         sample_rate=sample_rate,

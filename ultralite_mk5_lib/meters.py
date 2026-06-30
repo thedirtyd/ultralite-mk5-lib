@@ -92,8 +92,8 @@ def _meter_slots() -> tuple[MeterSlot, ...]:
     ):
         add(slot, name)
 
-    add(44, "Inputs - S/PDIF In L")
-    add(45, "Inputs - S/PDIF In R")
+    add(44, "Inputs - S/PDIF 1")
+    add(45, "Inputs - S/PDIF 2")
     for i in range(8):
         add(24 + i, f"Inputs - Optical {i + 1}")
 
