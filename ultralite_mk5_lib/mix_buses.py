@@ -104,7 +104,10 @@ def _apply_stereo_metadata(
         left_col = by_ich.get(left_ich)
         stereo_label = None
         if col.gain_ich == left_ich and right_col is not None and left_col is not None:
-            stereo_label = _make_stereo_label(left_col.label, right_col.label)
+            if left_col.kind == "host":
+                stereo_label = _HOST_LEFT_ICH_TO_LABEL.get(left_ich)
+            else:
+                stereo_label = _make_stereo_label(left_col.label, right_col.label)
         updated.append(
             replace(
                 col,

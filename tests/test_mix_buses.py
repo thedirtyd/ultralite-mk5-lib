@@ -63,6 +63,19 @@ class MixMatrixColumnsTests(unittest.TestCase):
         tos_opt = sum(1 for c in toslink if c.label.startswith("Optical"))
         self.assertGreater(adat_opt, tos_opt)
 
+    def test_host_stereo_label_omits_lr_suffix(self) -> None:
+        cols = mix_matrix_columns(
+            sample_rate=48000,
+            optical_input_mode=OPTICAL_MODE_ADAT,
+        )
+        host_l = next(c for c in cols if c.label == "Host 1/2 L")
+        host_r = next(c for c in cols if c.label == "Host 1/2 R")
+        self.assertEqual(host_l.stereo_label, "Host 1/2")
+        self.assertEqual(host_r.stereo_label, None)
+
+        phones_l = next(c for c in cols if c.label == "Host Phones L")
+        self.assertEqual(phones_l.stereo_label, "Host Phones")
+
 
 class BuildMixBusFaderMatrixTests(unittest.TestCase):
     def test_matrix_has_columns_and_buses(self) -> None:
