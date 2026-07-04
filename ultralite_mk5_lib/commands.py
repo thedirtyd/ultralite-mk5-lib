@@ -133,6 +133,10 @@ def apply_set_channel_stereo_mode(device: UltraLiteMk5, key: str, mode: str) -> 
     device.mix.set_stereo_mode(key, mode)
 
 
+def apply_set_eq(device: UltraLiteMk5, key: str, param: str, value: str) -> None:
+    device.eq.by_key(key).set_param(param, value)
+
+
 def apply_set_sample_rate(device: UltraLiteMk5, rate: int) -> None:
     device.settings.sample_rate = rate
 

@@ -42,6 +42,16 @@ PROPERTY_TABLE: dict[int, tuple[str, str]] = {
     5010: ("fpga_patch", "byte"),    # kFPGAPatch — output routing + meter map
     5011: ("main_trim", "byte"),     # kMainTrim — Monitor / main out trim
     5019: ("mute_enable", "byte"),   # kMuteEnable — Monitor hardware mute
+    1002: ("input_eq_mode", "byte"),
+    1003: ("input_eq_bypass", "byte"),
+    1004: ("input_eq_freq", "int32"),
+    1005: ("input_eq_gain", "float"),
+    1006: ("input_eq_q", "float"),
+    1022: ("bus_eq_mode", "byte"),
+    1023: ("bus_eq_bypass", "byte"),
+    1024: ("bus_eq_freq", "int32"),
+    1025: ("bus_eq_gain", "float"),
+    1026: ("bus_eq_q", "float"),
 }
 
 K_METERS_ID = 6000

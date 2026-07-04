@@ -11,6 +11,7 @@ from ultralite_mk5_lib.enums import (
     Monitors,
     OutputMeters,
 )
+from ultralite_mk5_lib.eq import EQ_BAND_KEYS, EQMode, resolve_eq_band
 from ultralite_mk5_lib.entities import (
     ALL_ENTITY_KEYS,
     DISPLAY_NAMES,
@@ -48,6 +49,8 @@ __all__ = [
     "Buses",
     "DISPLAY_NAMES",
     "DeviceState",
+    "EQ_BAND_KEYS",
+    "EQMode",
     "InputMeters",
     "InputPairs",
     "Inputs",
@@ -76,6 +79,7 @@ __all__ = [
     "parse_optical_mode",
     "property_index",
     "resolve_entity",
+    "resolve_eq_band",
     "snapshot_to_json",
     "state_report_to_json",
 ]

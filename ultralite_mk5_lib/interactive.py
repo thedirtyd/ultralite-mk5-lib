@@ -11,6 +11,7 @@ from ultralite_mk5_lib.client import UltraLiteMk5
 from ultralite_mk5_lib.completion import readline_input, setup_interactive_completion
 from ultralite_mk5_lib.commands import (
     apply_set_channel_stereo_mode,
+    apply_set_eq,
     apply_set_input_48v,
     apply_set_input_pad,
     apply_set_level,
@@ -54,6 +55,7 @@ INTERACTIVE_COMMANDS = (
     "set-solo",
     "set-48v",
     "set-pad",
+    "set-eq",
     "list-entities",
     "solo-output-bus",
     "clear-mix-solo",
@@ -174,8 +176,24 @@ def run_clear_mix_solo(device: UltraLiteMk5, key: str) -> None:
 
 
 def run_list_entities() -> None:
+    from ultralite_mk5_lib.eq import EQ_BAND_KEYS
+
     for key in ALL_ENTITY_KEYS:
         print(key)
+    for key in EQ_BAND_KEYS:
+        print(key)
+
+
+def run_set_eq(device: UltraLiteMk5, key: str, param: str, value: str) -> None:
+    from ultralite_mk5_lib.eq import resolve_eq_band, stereo_paired_input_eq_warning
+
+    normalized = key.strip().upper()
+    spec = resolve_eq_band(normalized)
+    warning = stereo_paired_input_eq_warning(spec, device.state.props)
+    if warning:
+        print(f"Warning: {warning}", file=sys.stderr)
+    apply_set_eq(device, normalized, param, value)
+    print(f"Set {normalized} {param.strip().lower()} to {value}")
 
 
 def run_set_level(device: UltraLiteMk5, key: str, level: str) -> None:
@@ -269,6 +287,22 @@ def _add_set_mute_args(parser: argparse.ArgumentParser) -> None:
         nargs="?",
         default=DEFAULT_MUTE_VALUE,
         help="mute/on/true/1 or unmute/off/false/0 (default: mute)",
+    )
+
+
+def _add_set_eq_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "key",
+        help="EQ band key (INPUTEQ_* or BUSEQ_*)",
+    )
+    parser.add_argument(
+        "param",
+        choices=("enable", "freq", "gain", "q", "curve"),
+        help="Parameter to set",
+    )
+    parser.add_argument(
+        "value",
+        help="enable: on/off; freq: Hz; gain: dB (-6 or -6db); q: Q value; curve: peak/lowshelf/highshelf/highpass",
     )
 
 
@@ -398,6 +432,13 @@ def _command_help_lines() -> dict[str, list[str]]:
             "  Examples: set-pad INPUTPAD_MICIN01 on",
             "            set-pad INPUTPAD_MICIN02 off",
         ],
+        "set-eq": [
+            "set-eq KEY PARAM VALUE",
+            "  KEY: INPUTEQ_* or BUSEQ_* band key (see list-entities)",
+            "  PARAM: enable | freq | gain | q | curve",
+            "  Example: set-eq INPUTEQ_LINEIN03_B1 enable on",
+            "  Example: set-eq BUSEQ_MAIN0102_B2 gain -3db",
+        ],
         "solo-output-bus": [
             "solo-output-bus KEY",
             "  KEY: MIXBUSFADER_*_OUT entity key (see list-entities)",
@@ -505,6 +546,10 @@ def build_interactive_parser() -> argparse.ArgumentParser:
     set_pad = add_command("set-pad", help="Set mic pre pad by entity key")
     _add_set_input_toggle_args(set_pad, kind="PAD")
     set_pad.set_defaults(func=_interactive_set_pad)
+
+    set_eq = add_command("set-eq", help="Set input or bus EQ band parameter")
+    _add_set_eq_args(set_eq)
+    set_eq.set_defaults(func=_interactive_set_eq)
 
     list_entities = add_command(
         "list-entities",
@@ -621,6 +666,10 @@ def _interactive_set_48v(session: InteractiveSession, args: argparse.Namespace) 
 
 def _interactive_set_pad(session: InteractiveSession, args: argparse.Namespace) -> None:
     run_set_pad(session.require_device(), args.key, args.value)
+
+
+def _interactive_set_eq(session: InteractiveSession, args: argparse.Namespace) -> None:
+    run_set_eq(session.require_device(), args.key, args.param, args.value)
 
 
 def _interactive_solo_output_bus(

@@ -33,6 +33,18 @@ K_MIX_SOLO_ID = 1018
 # kiMixMute in dev.js
 K_MIX_MUTE_ID = 1019
 
+# kiEQ* / koEQ* in dev.js
+K_INPUT_EQ_MODE_ID = 1002
+K_INPUT_EQ_BYPASS_ID = 1003
+K_INPUT_EQ_FREQ_ID = 1004
+K_INPUT_EQ_GAIN_ID = 1005
+K_INPUT_EQ_Q_ID = 1006
+K_BUS_EQ_MODE_ID = 1022
+K_BUS_EQ_BYPASS_ID = 1023
+K_BUS_EQ_FREQ_ID = 1024
+K_BUS_EQ_GAIN_ID = 1025
+K_BUS_EQ_Q_ID = 1026
+
 # kOpticalMode in dev.js — id 5006, kTByte; [0]=input, [1]=output (ADAT/TOSlink)
 K_OPTICAL_MODE_ID = 5006
 OPTICAL_INPUT_MODE_INDEX = 0
@@ -223,3 +235,43 @@ def make_mix_solo_frame(index: int, soloed: bool) -> bytes:
 
 def make_mix_mute_frame(index: int, muted: bool) -> bytes:
     return make_byte_property(K_MIX_MUTE_ID, index, 1 if muted else 0)
+
+
+def make_input_eq_mode_frame(index: int, mode: int) -> bytes:
+    return make_byte_property(K_INPUT_EQ_MODE_ID, index, mode)
+
+
+def make_input_eq_bypass_frame(index: int, bypass: int) -> bytes:
+    return make_byte_property(K_INPUT_EQ_BYPASS_ID, index, bypass)
+
+
+def make_input_eq_freq_frame(index: int, hz: int) -> bytes:
+    return make_int32_property(K_INPUT_EQ_FREQ_ID, index, hz)
+
+
+def make_input_eq_gain_frame(index: int, db: float) -> bytes:
+    return make_float_property(K_INPUT_EQ_GAIN_ID, index, db)
+
+
+def make_input_eq_q_frame(index: int, q: float) -> bytes:
+    return make_float_property(K_INPUT_EQ_Q_ID, index, q)
+
+
+def make_bus_eq_mode_frame(index: int, mode: int) -> bytes:
+    return make_byte_property(K_BUS_EQ_MODE_ID, index, mode)
+
+
+def make_bus_eq_bypass_frame(index: int, bypass: int) -> bytes:
+    return make_byte_property(K_BUS_EQ_BYPASS_ID, index, bypass)
+
+
+def make_bus_eq_freq_frame(index: int, hz: int) -> bytes:
+    return make_int32_property(K_BUS_EQ_FREQ_ID, index, hz)
+
+
+def make_bus_eq_gain_frame(index: int, db: float) -> bytes:
+    return make_float_property(K_BUS_EQ_GAIN_ID, index, db)
+
+
+def make_bus_eq_q_frame(index: int, q: float) -> bytes:
+    return make_float_property(K_BUS_EQ_Q_ID, index, q)

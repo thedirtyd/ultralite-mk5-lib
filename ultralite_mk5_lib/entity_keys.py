@@ -78,3 +78,11 @@ def mix_bus_fader_entity_key(bus_name: str, channel_label: str) -> str:
 
 def mix_input_entity_key(channel_label: str) -> str:
     return f"MIXINPUT_{mix_channel_entity_key_part(channel_label)}"
+
+
+def input_eq_entity_key(channel_name: str, band: int) -> str:
+    return f"INPUTEQ_{normalize_key_part(channel_name)}_B{band}"
+
+
+def bus_eq_entity_key(bus_name: str, band: int) -> str:
+    return f"BUSEQ_{mix_bus_entity_key_part(bus_name)}_B{band}"

@@ -15,6 +15,7 @@ from ultralite_mk5_lib.entities import (
     SET_SOLO_ENTITY_KEYS,
     SOLO_OUTPUT_BUS_KEYS,
 )
+from ultralite_mk5_lib.eq import EQ_BAND_KEYS
 from ultralite_mk5_lib.protocol import VALID_SAMPLE_RATES
 
 try:
@@ -33,12 +34,19 @@ _SOLO_VALUE_CHOICES: tuple[str, ...] = (
     "0",
 )
 
+_EQ_PARAM_CHOICES: tuple[str, ...] = ("enable", "freq", "gain", "q", "curve")
+
+_EQ_ENABLE_CHOICES: tuple[str, ...] = ("on", "off", "true", "false", "1", "0")
+
+_EQ_CURVE_CHOICES: tuple[str, ...] = ("peak", "lowshelf", "highshelf", "highpass")
+
 _COMMAND_ENTITY_KEYS: dict[str, tuple[str, ...]] = {
     "set-level": SET_LEVEL_ENTITY_KEYS,
     "set-mute": SET_MUTE_ENTITY_KEYS,
     "set-solo": SET_SOLO_ENTITY_KEYS,
     "set-48v": INPUT_48V_ENTITY_KEYS,
     "set-pad": INPUT_PAD_ENTITY_KEYS,
+    "set-eq": EQ_BAND_KEYS,
     "solo-output-bus": SOLO_OUTPUT_BUS_KEYS,
     "clear-mix-solo": CLEAR_MIX_SOLO_KEYS,
     "set-channel-mode": SET_CHANNEL_MODE_ENTITY_KEYS,
@@ -255,6 +263,19 @@ def completion_candidates(line: str, endidx: int) -> list[str]:
             return _entity_candidates(command, prefix)
         if token_index == 2:
             return _filter_prefix(_TOGGLE_VALUE_CHOICES, prefix)
+        return []
+
+    if command == "set-eq":
+        if token_index == 1:
+            return _entity_candidates(command, prefix)
+        if token_index == 2:
+            return _filter_prefix(_EQ_PARAM_CHOICES, prefix)
+        if token_index == 3:
+            param = tokens[2].lower() if len(tokens) > 2 else ""
+            if param == "enable":
+                return _filter_prefix(_EQ_ENABLE_CHOICES, prefix)
+            if param == "curve":
+                return _filter_prefix(_EQ_CURVE_CHOICES, prefix)
         return []
 
     if command == "solo-output-bus":

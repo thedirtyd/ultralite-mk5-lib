@@ -11,6 +11,7 @@ import websocket
 from ultralite_mk5_lib.exceptions import NotConnectedError
 from ultralite_mk5_lib.protocol import build_ws_url
 from ultralite_mk5_lib.state import DeviceState
+from ultralite_mk5_lib.views.eq import EQView
 from ultralite_mk5_lib.views.inputs import InputsView
 from ultralite_mk5_lib.layout import LayoutView
 from ultralite_mk5_lib.views.meters import MetersView
@@ -67,6 +68,7 @@ class UltraLiteMk5:
         self._meters = MetersView(self)
         self._settings = SettingsView(self)
         self._layout = LayoutView(self)
+        self._eq = EQView(self)
 
         if connect:
             self.connect()
@@ -158,6 +160,10 @@ class UltraLiteMk5:
     @property
     def layout(self) -> LayoutView:
         return self._layout
+
+    @property
+    def eq(self) -> EQView:
+        return self._eq
 
     def wait_ready(self, timeout: float | None = None) -> bool:
         """Block until core mix/trim props needed for get-state have arrived."""

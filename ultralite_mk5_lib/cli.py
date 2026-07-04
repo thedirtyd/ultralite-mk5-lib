@@ -26,6 +26,7 @@ from ultralite_mk5_lib.interactive import (
     _add_set_level_args,
     _add_set_mute_args,
     _add_set_input_toggle_args,
+    _add_set_eq_args,
     _add_set_sample_rate_args,
     run_get_state,
     run_interactive_loop,
@@ -36,6 +37,7 @@ from ultralite_mk5_lib.interactive import (
     run_set_mute,
     run_set_48v,
     run_set_pad,
+    run_set_eq,
     run_set_optical_input_mode,
     run_set_optical_output_mode,
     run_set_sample_rate,
@@ -162,6 +164,13 @@ def _cmd_set_pad(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_set_eq(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_set_eq(device, args.key, args.param, args.value)
+        print(f" on {device.url}")
+    return 0
+
+
 def _cmd_list_entities(_args: argparse.Namespace) -> int:
     run_list_entities()
     return 0
@@ -271,6 +280,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_set_input_toggle_args(set_pad, kind="PAD")
     set_pad.set_defaults(func=_cmd_set_pad)
+
+    set_eq = subparsers.add_parser(
+        "set-eq",
+        help="Set input or bus EQ band parameter by entity key",
+    )
+    _add_set_eq_args(set_eq)
+    set_eq.set_defaults(func=_cmd_set_eq)
 
     list_entities = subparsers.add_parser(
         "list-entities",

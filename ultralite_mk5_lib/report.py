@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ultralite_mk5_lib.entity_keys import mix_bus_fader_entity_key
+from ultralite_mk5_lib.eq import build_bus_eq_state, build_input_eq_state
 from ultralite_mk5_lib.inputs import INPUT_GAIN_CHANNELS, build_input_gains, build_mic_pre_state
 from ultralite_mk5_lib.mix_buses import build_mix_bus_fader_matrix, mix_fader_gain_to_db
 from ultralite_mk5_lib.meters import iter_visible_meter_slots, resolve_meter_slot
@@ -146,6 +147,8 @@ def build_state_report(snap: dict[str, Any]) -> dict[str, Any]:
         "monitor_trim": monitor_trim,
         "input_gain": input_gain,
         "output_trim": output_trim,
+        "input_eq": build_input_eq_state(props),
+        "bus_eq": build_bus_eq_state(props),
         "mix_bus_faders": mix_bus_faders,
         "meters": _build_meter_entries(snap),
     }

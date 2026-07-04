@@ -341,6 +341,87 @@ def _print_mix_bus_fader_matrix(snap: dict[str, Any]) -> None:
     _console.print()
 
 
+def _format_eq_bool(value: bool | None) -> str:
+    if value is None:
+        return "n/a"
+    return "on" if value else "off"
+
+
+def _format_eq_curve(row: dict[str, Any]) -> str:
+    curve = row.get("curve")
+    if curve is None:
+        return "n/a"
+    if row.get("curve_locked"):
+        return f"{curve} (locked)"
+    return str(curve)
+
+
+def _format_eq_gain(row: dict[str, Any]) -> str:
+    if not row.get("gain_applies", True):
+        return "n/a"
+    gain = row.get("gain_db")
+    if gain is None:
+        return "n/a"
+    return f"{gain:.1f}"
+
+
+def _format_eq_q(row: dict[str, Any]) -> str:
+    if not row.get("q_applies", True):
+        return "n/a"
+    q = row.get("q")
+    if q is None:
+        return "n/a"
+    return f"{q:.2f}"
+
+
+def _print_eq_table(rows: list[dict[str, Any]], *, title: str) -> None:
+    if not rows:
+        return
+    _console.print(f"[bold]{title}[/bold]")
+    table = Table(show_header=True, header_style="bold", expand=True, width=_table_width())
+    table.add_column("Channel", no_wrap=True)
+    table.add_column("Band", justify="right", no_wrap=True)
+    table.add_column("En", no_wrap=True)
+    table.add_column("Curve", no_wrap=True)
+    table.add_column("Freq (Hz)", justify="right", no_wrap=True)
+    table.add_column("Gain (dB)", justify="right", no_wrap=True)
+    table.add_column("Q", justify="right", no_wrap=True)
+    last_channel: str | None = None
+    for row in rows:
+        channel = row.get("channel") or row.get("name", "")
+        if channel == last_channel:
+            channel_cell = ""
+        else:
+            channel_cell = channel
+            last_channel = channel
+        freq = row.get("freq_hz")
+        table.add_row(
+            channel_cell,
+            str(row.get("band", "")),
+            _format_eq_bool(row.get("enabled")),
+            _format_eq_curve(row),
+            str(freq) if freq is not None else "n/a",
+            _format_eq_gain(row),
+            _format_eq_q(row),
+        )
+    _console.print(table)
+    _console.print()
+
+
+def _print_input_eq_table(snap: dict[str, Any]) -> None:
+    from ultralite_mk5_lib.report import build_state_report
+
+    rows = build_state_report(snap).get("input_eq", [])
+    _print_eq_table(rows, title="Input EQ")
+
+
+def _print_bus_eq_table(snap: dict[str, Any]) -> None:
+    from ultralite_mk5_lib.report import build_state_report
+
+    rows = build_state_report(snap).get("bus_eq", [])
+    _print_eq_table(rows, title="Bus EQ")
+
+
 def _print_input_gain_table(snap: dict[str, Any]) -> None:
     props = snap.get("props", {})
     gain_rows = build_input_gains(props)
@@ -424,8 +505,10 @@ def print_state_snapshot(snap: dict[str, Any]) -> None:
     _console.print()
     _print_monitors_trim_table(snap)
     _print_input_gain_table(snap)
+    _print_input_eq_table(snap)
     _print_output_trim_table(snap)
     _print_mix_bus_fader_matrix(snap)
+    _print_bus_eq_table(snap)
 
     _console.print(_build_active_meters_panel(snap))
     _console.print()

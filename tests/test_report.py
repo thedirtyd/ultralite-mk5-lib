@@ -15,6 +15,8 @@ class BuildStateReportTests(unittest.TestCase):
         self.assertIn("device", report)
         self.assertIn("monitor_trim", report)
         self.assertIn("input_gain", report)
+        self.assertIn("input_eq", report)
+        self.assertIn("bus_eq", report)
         self.assertIn("output_trim", report)
         self.assertIn("mix_bus_faders", report)
         self.assertIn("meters", report)
