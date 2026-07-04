@@ -16,26 +16,27 @@ from ultralite_mk5_lib.meters import OPTICAL_MODE_ADAT
 from tests.helpers import minimal_props, minimal_snapshot
 
 class TestMeterDisplayName(unittest.TestCase):
-    def test_stereo_linked_mic_pair_shares_label(self) -> None:
+    def test_stereo_linked_mic_pair_keeps_mono_labels(self) -> None:
         snap = minimal_snapshot()
         left = meter_display_name("METER_INPUT_MICIN01", snap)
         right = meter_display_name("METER_INPUT_MICIN02", snap)
-        self.assertEqual(left, right)
-        self.assertIn("1/2", left)
+        self.assertEqual(left, "Inputs - Mic In 1")
+        self.assertEqual(right, "Inputs - Mic In 2")
+        self.assertNotEqual(left, right)
 
-    def test_stereo_linked_optical_pair_shares_label(self) -> None:
+    def test_stereo_linked_optical_pair_keeps_mono_labels(self) -> None:
         snap = minimal_snapshot(props=minimal_props(mix_stereo={10: 1}))
         left = meter_display_name("METER_INPUT_OPTICAL01", snap)
         right = meter_display_name("METER_INPUT_OPTICAL02", snap)
-        self.assertEqual(left, right)
-        self.assertEqual(left, "Inputs - Optical 1/2")
+        self.assertEqual(left, "Inputs - Optical 1")
+        self.assertEqual(right, "Inputs - Optical 2")
 
-    def test_stereo_linked_spdif_pair_shares_label(self) -> None:
+    def test_stereo_linked_spdif_pair_keeps_mono_labels(self) -> None:
         snap = minimal_snapshot(props=minimal_props(mix_stereo={8: 1}))
         left = meter_display_name("METER_INPUT_SPDIF01", snap)
         right = meter_display_name("METER_INPUT_SPDIF02", snap)
-        self.assertEqual(left, right)
-        self.assertEqual(left, "Inputs - S/PDIF 1/2")
+        self.assertEqual(left, "Inputs - S/PDIF 1")
+        self.assertEqual(right, "Inputs - S/PDIF 2")
 
     def test_unlinked_spdif_mono_labels(self) -> None:
         snap = minimal_snapshot(props=minimal_props(mix_stereo={}))
@@ -77,7 +78,7 @@ class TestMeterDisplayName(unittest.TestCase):
             "Phones R",
         )
 
-    def test_mix_post_fx_title_case(self) -> None:
+    def test_mix_post_fx_keeps_mono_label_when_linked(self) -> None:
         snap = minimal_snapshot(props=minimal_props(mix_stereo={0: 0}))
         self.assertEqual(
             meter_display_name("METER_MIX_MICIN01POSTFX", snap),
@@ -86,7 +87,11 @@ class TestMeterDisplayName(unittest.TestCase):
         linked = minimal_snapshot()
         self.assertEqual(
             meter_display_name("METER_MIX_MICIN01POSTFX", linked),
-            "Mix - Mic In 1/2 Post-FX",
+            "Mix - Mic In 1 Post-FX",
+        )
+        self.assertEqual(
+            meter_display_name("METER_MIX_MICIN02POSTFX", linked),
+            "Mix - Mic In 2 Post-FX",
         )
 
     def test_reverb_wet_title_case(self) -> None:

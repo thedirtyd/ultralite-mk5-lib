@@ -30,36 +30,11 @@ class MeterNameEntry(TypedDict):
     stereo: NotRequired[str]
 
 
-def _mix_stereo_props(snapshot: dict[str, Any]) -> dict[int, int]:
-    return snapshot.get("props", {}).get("mix_stereo", {})
-
-
 def _column_by_gain_ich(gain_ich: int) -> MixMatrixColumn | None:
     for col in FULL_MIX_MATRIX_COLUMNS:
         if col.gain_ich == gain_ich:
             return col
     return None
-
-
-def _stereo_linked(col: MixMatrixColumn, mix_stereo: dict[int, int]) -> bool:
-    if col.stereo_left_ich is None:
-        return False
-    return bool(mix_stereo.get(col.stereo_left_ich, 0))
-
-
-def _meter_column_label(col: MixMatrixColumn, mix_stereo: dict[int, int]) -> str:
-    """Column label with stereo combined name on both L and R when linked."""
-    label = col.label
-    left_ich = col.stereo_left_ich
-    if left_ich is not None:
-        left_col = _column_by_gain_ich(left_ich)
-        if (
-            left_col is not None
-            and left_col.stereo_label is not None
-            and _stereo_linked(left_col, mix_stereo)
-        ):
-            label = left_col.stereo_label
-    return label
 
 
 def _build_gain_ich_to_meter_keys() -> dict[int, frozenset[str]]:
@@ -153,30 +128,8 @@ def meter_name_entry(key: str, snapshot: dict[str, Any]) -> MeterNameEntry:
 
 
 def meter_display_name(key: str, snapshot: dict[str, Any]) -> str:
-    """Snapshot-aware display label; stereo pairs share one name on L and R."""
-    ref = resolve_entity(key)
-    if ref.kind != "meter":
-        return display_name(key)
-
-    out_trim = _output_trim_meter_label(key)
-    if out_trim is not None:
-        return out_trim
-
-    mix_stereo = _mix_stereo_props(snapshot)
-    for gain_ich, meter_keys in _GAIN_ICH_TO_METER_KEYS.items():
-        if key not in meter_keys:
-            continue
-        col = _column_by_gain_ich(gain_ich)
-        if col is None:
-            break
-        label = _meter_column_label(col, mix_stereo)
-        if ref.display.startswith("Inputs - "):
-            return f"Inputs - {label}"
-        if ref.display.startswith("Mix - ") and ref.display.endswith(MIX_POST_FX_SUFFIX):
-            return f"Mix - {label}{MIX_POST_FX_SUFFIX}"
-        break
-
-    return display_name(key)
+    """Per-channel meter label (mono catalog name; stereo link does not rename)."""
+    return meter_name_entry(key, snapshot)["mono"]
 
 
 def build_meter_names(snapshot: dict[str, Any]) -> dict[str, MeterNameEntry]:
