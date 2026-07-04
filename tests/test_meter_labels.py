@@ -15,7 +15,6 @@ from ultralite_mk5_lib.meters import OPTICAL_MODE_ADAT
 
 from tests.helpers import minimal_props, minimal_snapshot
 
-
 class TestMeterDisplayName(unittest.TestCase):
     def test_stereo_linked_mic_pair_shares_label(self) -> None:
         snap = minimal_snapshot()
@@ -76,6 +75,25 @@ class TestMeterDisplayName(unittest.TestCase):
         self.assertEqual(
             meter_display_name("METER_OUTPUT_PHONESMIXR", snap),
             "Phones R",
+        )
+
+    def test_mix_post_fx_title_case(self) -> None:
+        snap = minimal_snapshot(props=minimal_props(mix_stereo={0: 0}))
+        self.assertEqual(
+            meter_display_name("METER_MIX_MICIN01POSTFX", snap),
+            "Mix - Mic In 1 Post-FX",
+        )
+        linked = minimal_snapshot()
+        self.assertEqual(
+            meter_display_name("METER_MIX_MICIN01POSTFX", linked),
+            "Mix - Mic In 1/2 Post-FX",
+        )
+
+    def test_reverb_wet_title_case(self) -> None:
+        snap = minimal_snapshot()
+        self.assertEqual(
+            meter_display_name("METER_MIX_REVERBWET", snap),
+            "Mix - Reverb Wet",
         )
 
 

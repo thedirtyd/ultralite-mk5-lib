@@ -7,6 +7,7 @@ from typing import Any, NotRequired, TypedDict
 from ultralite_mk5_lib.entities import display_name, resolve_entity
 from ultralite_mk5_lib.meters import (
     METER_SLOTS,
+    MIX_POST_FX_SUFFIX,
     iter_visible_meter_slots,
     optical_input_meter_count,
     optical_output_meter_count,
@@ -70,7 +71,7 @@ def _build_gain_ich_to_meter_keys() -> dict[int, frozenset[str]]:
         keys: set[str] = set()
         for meter_name in (
             f"Inputs - {col.label}",
-            f"Mix - {col.label} post-FX",
+            f"Mix - {col.label}{MIX_POST_FX_SUFFIX}",
         ):
             key = name_to_key.get(meter_name)
             if key is not None:
@@ -140,11 +141,11 @@ def meter_name_entry(key: str, snapshot: dict[str, Any]) -> MeterNameEntry:
             break
         if ref.display.startswith("Inputs - "):
             return _meter_name_entry_for_column(col, prefix="Inputs - ")
-        if ref.display.startswith("Mix - ") and ref.display.endswith(" post-FX"):
+        if ref.display.startswith("Mix - ") and ref.display.endswith(MIX_POST_FX_SUFFIX):
             return _meter_name_entry_for_column(
                 col,
                 prefix="Mix - ",
-                suffix=" post-FX",
+                suffix=MIX_POST_FX_SUFFIX,
             )
         break
 
@@ -171,8 +172,8 @@ def meter_display_name(key: str, snapshot: dict[str, Any]) -> str:
         label = _meter_column_label(col, mix_stereo)
         if ref.display.startswith("Inputs - "):
             return f"Inputs - {label}"
-        if ref.display.startswith("Mix - ") and ref.display.endswith(" post-FX"):
-            return f"Mix - {label} post-FX"
+        if ref.display.startswith("Mix - ") and ref.display.endswith(MIX_POST_FX_SUFFIX):
+            return f"Mix - {label}{MIX_POST_FX_SUFFIX}"
         break
 
     return display_name(key)

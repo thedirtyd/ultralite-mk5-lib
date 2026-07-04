@@ -7,6 +7,10 @@ from dataclasses import dataclass
 
 from ultralite_mk5_lib.entity_keys import meter_entity_key
 
+# Title-case suffixes in CueMix-oriented meter catalog labels.
+MIX_POST_FX_SUFFIX = " Post-FX"
+MIX_REVERB_WET_CATALOG_NAME = "Mix - Reverb Wet"
+
 # display_index: Inputs bank, then Mix, then Outputs (matches CueMix tabs).
 _GROUP_INPUTS = 100
 _GROUP_MIX = 200
@@ -101,17 +105,17 @@ def _meter_slots() -> tuple[MeterSlot, ...]:
     add(0, "Mix - USB Host In 1")
     add(1, "Mix - USB Host In 2")
     for slot, name in (
-        (50, "Mix - Mic In 1 post-FX"),
-        (51, "Mix - Mic In 2 post-FX"),
-        (52, "Mix - Line In 3 post-FX"),
-        (53, "Mix - Line In 4 post-FX"),
-        (58, "Mix - Line In 5 post-FX"),
-        (59, "Mix - Line In 6 post-FX"),
-        (60, "Mix - Line In 7 post-FX"),
-        (61, "Mix - Line In 8 post-FX"),
+        (50, f"Mix - Mic In 1{MIX_POST_FX_SUFFIX}"),
+        (51, f"Mix - Mic In 2{MIX_POST_FX_SUFFIX}"),
+        (52, f"Mix - Line In 3{MIX_POST_FX_SUFFIX}"),
+        (53, f"Mix - Line In 4{MIX_POST_FX_SUFFIX}"),
+        (58, f"Mix - Line In 5{MIX_POST_FX_SUFFIX}"),
+        (59, f"Mix - Line In 6{MIX_POST_FX_SUFFIX}"),
+        (60, f"Mix - Line In 7{MIX_POST_FX_SUFFIX}"),
+        (61, f"Mix - Line In 8{MIX_POST_FX_SUFFIX}"),
     ):
         add(slot, name)
-    add(68, "Mix - Reverb wet")
+    add(68, MIX_REVERB_WET_CATALOG_NAME)
 
     order = _GROUP_OUTPUTS
     for slot, name in (
