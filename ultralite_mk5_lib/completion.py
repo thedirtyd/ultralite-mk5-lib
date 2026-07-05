@@ -13,6 +13,7 @@ from ultralite_mk5_lib.entities import (
     SET_LEVEL_ENTITY_KEYS,
     SET_MUTE_ENTITY_KEYS,
     SET_SOLO_ENTITY_KEYS,
+    SET_PAN_ENTITY_KEYS,
     SOLO_OUTPUT_BUS_KEYS,
 )
 from ultralite_mk5_lib.eq import EQ_BAND_KEYS
@@ -34,16 +35,41 @@ _SOLO_VALUE_CHOICES: tuple[str, ...] = (
     "0",
 )
 
+_PAN_VALUE_CHOICES: tuple[str, ...] = (
+    "0",
+    "0.0",
+    "0.5",
+    "1",
+    "1.0",
+    "center",
+    "c",
+    "l",
+    "left",
+    "r",
+    "right",
+)
+
 _EQ_PARAM_CHOICES: tuple[str, ...] = ("enable", "freq", "gain", "q", "curve")
 
 _EQ_ENABLE_CHOICES: tuple[str, ...] = ("on", "off", "true", "false", "1", "0")
 
 _EQ_CURVE_CHOICES: tuple[str, ...] = ("peak", "lowshelf", "highshelf", "highpass")
 
+_INPUT_MONITOR_VALUE_CHOICES: tuple[str, ...] = (
+    "toggle",
+    "on",
+    "off",
+    "true",
+    "false",
+    "1",
+    "0",
+)
+
 _COMMAND_ENTITY_KEYS: dict[str, tuple[str, ...]] = {
     "set-level": SET_LEVEL_ENTITY_KEYS,
     "set-mute": SET_MUTE_ENTITY_KEYS,
     "set-solo": SET_SOLO_ENTITY_KEYS,
+    "set-pan": SET_PAN_ENTITY_KEYS,
     "set-48v": INPUT_48V_ENTITY_KEYS,
     "set-pad": INPUT_PAD_ENTITY_KEYS,
     "set-eq": EQ_BAND_KEYS,
@@ -249,6 +275,22 @@ def completion_candidates(line: str, endidx: int) -> list[str]:
             return _entity_candidates(command, prefix)
         if token_index == 2:
             return _filter_prefix(_SOLO_VALUE_CHOICES, prefix)
+        return []
+
+    if command == "set-pan":
+        if token_index == 1:
+            return _entity_candidates(command, prefix)
+        if token_index == 2:
+            return _filter_prefix(_PAN_VALUE_CHOICES, prefix)
+        return []
+
+    if command == "set-input-monitor":
+        if token_index == 1:
+            return _filter_prefix(("main", "phones"), prefix)
+        if token_index == 2:
+            return _filter_prefix(tuple(str(i) for i in range(8)), prefix)
+        if token_index == 3:
+            return _filter_prefix(_INPUT_MONITOR_VALUE_CHOICES, prefix)
         return []
 
     if command == "set-48v":

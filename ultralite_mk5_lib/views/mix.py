@@ -17,10 +17,12 @@ from ultralite_mk5_lib.mix_buses import (
 )
 from ultralite_mk5_lib.levels import LevelCommand, prepare_level_command
 from ultralite_mk5_lib.mutes import MuteCommand, prepare_mute_command
+from ultralite_mk5_lib.pans import validate_mix_pan
 from ultralite_mk5_lib.protocol import (
     make_bus_mute_frame,
     make_mix_fader_frame,
     make_mix_mute_frame,
+    make_mix_pan_frame,
     make_mix_solo_frame,
     make_mix_stereo_frame,
 )
@@ -114,6 +116,23 @@ class CrosspointFader:
         frame = make_mix_solo_frame(self.flat_index, soloed)
         send_binary(self._device, frame)
         send_prop_local(self._device, "mix_solo", self.flat_index, 1 if soloed else 0)
+
+    @property
+    def pan(self) -> float | None:
+        raw = self._device.state.props.get("mix_pan", {}).get(self.flat_index)
+        if raw is None:
+            return None
+        return float(raw)
+
+    def set_pan(self, pan: float) -> None:
+        pan = validate_mix_pan(pan)
+        if self.linked:
+            raise ValueError(
+                f"pan is unavailable while input pair {self._gain_ich & 0xFE} is stereo-linked"
+            )
+        frame = make_mix_pan_frame(self.flat_index, pan)
+        send_binary(self._device, frame)
+        send_prop_local(self._device, "mix_pan", self.flat_index, pan)
 
     def set_level_token(self, level: str) -> LevelCommand:
         command = prepare_level_command(self._entity_key(), level)

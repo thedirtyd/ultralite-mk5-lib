@@ -11,6 +11,7 @@ from ultralite_mk5_lib.protocol import (
     K_INPUT_GAIN_ID,
     K_MAIN_TRIM_ID,
     K_MIX_FADER_ID,
+    K_MIX_PAN_ID,
     K_MIX_MUTE_ID,
     K_MIX_SOLO_ID,
     K_OPTICAL_MODE_ID,
@@ -22,6 +23,7 @@ from ultralite_mk5_lib.protocol import (
     make_input_gain_frame,
     make_main_trim_frame,
     make_mix_fader_frame,
+    make_mix_pan_frame,
     make_mix_mute_frame,
     make_mix_solo_frame,
     make_optical_mode_frame,
@@ -96,6 +98,12 @@ class MakeFrameTests(unittest.TestCase):
         assert_frame_header(frame, K_MIX_FADER_ID, 320)
         raw = struct.unpack(">i", frame[6:10])[0]
         self.assertAlmostEqual(raw / K824_DIVISOR, 0.75, places=5)
+
+    def test_mix_pan_frame(self) -> None:
+        frame = make_mix_pan_frame(320, 0.5)
+        assert_frame_header(frame, K_MIX_PAN_ID, 320)
+        raw = struct.unpack(">i", frame[6:10])[0]
+        self.assertAlmostEqual(raw / K824_DIVISOR, 0.5, places=5)
 
     def test_input_gain_frame(self) -> None:
         frame = make_input_gain_frame(0, 12)

@@ -21,6 +21,8 @@ from ultralite_mk5_lib.interactive import (
     _add_set_optical_mode_args,
     _add_solo_output_bus_args,
     _add_set_solo_args,
+    _add_set_pan_args,
+    _add_set_input_monitor_args,
     _add_clear_mix_solo_args,
     _add_set_channel_mode_args,
     _add_set_level_args,
@@ -42,6 +44,8 @@ from ultralite_mk5_lib.interactive import (
     run_set_optical_output_mode,
     run_set_sample_rate,
     run_set_solo,
+    run_set_pan,
+    run_set_input_monitor,
     run_clear_mix_solo,
     run_solo_output_bus,
 )
@@ -204,6 +208,20 @@ def _cmd_set_solo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_set_pan(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_set_pan(device, args.key, args.value)
+        print(f" on {device.url}")
+    return 0
+
+
+def _cmd_set_input_monitor(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_set_input_monitor(device, args.bus, args.input, args.value)
+        print(f" on {device.url}")
+    return 0
+
+
 def _cmd_clear_mix_solo(args: argparse.Namespace) -> int:
     with _device_from_args(args) as device:
         run_clear_mix_solo(device, args.key)
@@ -327,6 +345,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_set_solo_args(set_solo)
     set_solo.set_defaults(func=_cmd_set_solo)
+
+    set_pan = subparsers.add_parser(
+        "set-pan",
+        help="Set pan on a mix crosspoint (kiMixPan)",
+    )
+    _add_set_pan_args(set_pan)
+    set_pan.set_defaults(func=_cmd_set_pan)
+
+    set_input_monitor = subparsers.add_parser(
+        "set-input-monitor",
+        help="Enable, disable, or toggle HOME tab input monitoring",
+    )
+    _add_set_input_monitor_args(set_input_monitor)
+    set_input_monitor.set_defaults(func=_cmd_set_input_monitor)
 
     clear_mix_solo = subparsers.add_parser(
         "clear-mix-solo",

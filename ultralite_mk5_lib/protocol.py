@@ -16,8 +16,9 @@ K_BUS_MUTE_ID = 1028
 # kiMixStereo in dev.js — id 1000, kTByte
 K_MIX_STEREO_ID = 1000
 
-# kiMixFader / koBusFader in dev.js — id 1016 / 1027, kTFloat (8.24)
+# kiMixFader / kiMixPan / koBusFader in dev.js — id 1016 / 1017 / 1027, kTFloat (8.24)
 K_MIX_FADER_ID = 1016
+K_MIX_PAN_ID = 1017
 K_BUS_FADER_ID = 1027
 
 # kiGain / kPad / k48V / koTrim / kMainTrim in dev.js
@@ -187,6 +188,10 @@ def make_float_property(prop_id: int, index: int, gain: float) -> bytes:
 
 def make_mix_fader_frame(index: int, gain: float) -> bytes:
     return make_float_property(K_MIX_FADER_ID, index, gain)
+
+
+def make_mix_pan_frame(index: int, pan: float) -> bytes:
+    return make_float_property(K_MIX_PAN_ID, index, pan)
 
 
 def make_mix_stereo_frame(index: int, stereo: bool) -> bytes:

@@ -13,6 +13,7 @@ from ultralite_mk5_lib.commands import (
     apply_set_channel_stereo_mode,
     apply_set_eq,
     apply_set_input_48v,
+    apply_set_input_monitor,
     apply_set_input_pad,
     apply_set_level,
     apply_set_mute,
@@ -20,6 +21,7 @@ from ultralite_mk5_lib.commands import (
     apply_set_optical_output_mode,
     apply_set_sample_rate,
     apply_set_solo,
+    apply_set_pan,
     apply_clear_mix_solo,
     apply_solo_output_bus,
 )
@@ -32,6 +34,8 @@ from ultralite_mk5_lib.input_toggles import (
 from ultralite_mk5_lib.levels import format_level_summary, fix_set_level_argv
 from ultralite_mk5_lib.mix_buses import STEREO_CAPABLE_MAX_GAIN_ICH
 from ultralite_mk5_lib.mutes import DEFAULT_MUTE_VALUE, format_mute_summary
+from ultralite_mk5_lib.pans import DEFAULT_PAN_VALUE, format_pan_summary
+from ultralite_mk5_lib.input_monitor import DEFAULT_INPUT_MONITOR_VALUE
 from ultralite_mk5_lib.solos import DEFAULT_SOLO_VALUE, format_solo_summary
 from ultralite_mk5_lib.protocol import (
     normalize_optical_mode,
@@ -168,6 +172,21 @@ def run_solo_output_bus(device: UltraLiteMk5, key: str) -> None:
 def run_set_solo(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
     command = apply_set_solo(device, key, value)
     print(format_solo_summary(command))
+
+
+def run_set_pan(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
+    command = apply_set_pan(device, key, value)
+    print(format_pan_summary(command))
+
+
+def run_set_input_monitor(
+    device: UltraLiteMk5,
+    bus: str,
+    input_index: int,
+    value: str | None = None,
+) -> None:
+    state = apply_set_input_monitor(device, bus, input_index, value)
+    print(f"Input monitor {bus.strip().lower()} {input_index}: {state}")
 
 
 def run_clear_mix_solo(device: UltraLiteMk5, key: str) -> None:
@@ -316,6 +335,38 @@ def _add_set_solo_args(parser: argparse.ArgumentParser) -> None:
         nargs="?",
         default=DEFAULT_SOLO_VALUE,
         help="solo/on/true/1 or unsolo/off/false/0 (default: solo)",
+    )
+
+
+def _add_set_pan_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "key",
+        help="Entity key (MIXBUSFADER_* crosspoint, not *_OUT)",
+    )
+    parser.add_argument(
+        "value",
+        nargs="?",
+        default=DEFAULT_PAN_VALUE,
+        help="0.0..1.0, center, L, or R (default: center)",
+    )
+
+
+def _add_set_input_monitor_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "bus",
+        choices=("main", "phones"),
+        help="Monitor bus (main or phones)",
+    )
+    parser.add_argument(
+        "input",
+        type=int,
+        help="Analog input index 0–7 (Mic In 1 = 0)",
+    )
+    parser.add_argument(
+        "value",
+        nargs="?",
+        default=DEFAULT_INPUT_MONITOR_VALUE,
+        help="on/off/toggle (default: toggle, matching card buttons)",
     )
 
 
@@ -539,6 +590,17 @@ def build_interactive_parser() -> argparse.ArgumentParser:
     _add_set_solo_args(set_solo)
     set_solo.set_defaults(func=_interactive_set_solo)
 
+    set_pan = add_command("set-pan", help="Set pan on a mix crosspoint")
+    _add_set_pan_args(set_pan)
+    set_pan.set_defaults(func=_interactive_set_pan)
+
+    set_input_monitor = add_command(
+        "set-input-monitor",
+        help="Enable, disable, or toggle HOME tab input monitoring",
+    )
+    _add_set_input_monitor_args(set_input_monitor)
+    set_input_monitor.set_defaults(func=_interactive_set_input_monitor)
+
     set_48v = add_command("set-48v", help="Set 48V phantom power by entity key")
     _add_set_input_toggle_args(set_48v, kind="48V")
     set_48v.set_defaults(func=_interactive_set_48v)
@@ -680,6 +742,21 @@ def _interactive_solo_output_bus(
 
 def _interactive_set_solo(session: InteractiveSession, args: argparse.Namespace) -> None:
     run_set_solo(session.require_device(), args.key, args.value)
+
+
+def _interactive_set_pan(session: InteractiveSession, args: argparse.Namespace) -> None:
+    run_set_pan(session.require_device(), args.key, args.value)
+
+
+def _interactive_set_input_monitor(
+    session: InteractiveSession, args: argparse.Namespace
+) -> None:
+    run_set_input_monitor(
+        session.require_device(),
+        args.bus,
+        args.input,
+        args.value,
+    )
 
 
 def _interactive_clear_mix_solo(

@@ -201,6 +201,8 @@ SET_SOLO_ENTITY_KEYS: tuple[str, ...] = tuple(
     if ref.kind == "mix_fader"
 )
 
+SET_PAN_ENTITY_KEYS: tuple[str, ...] = SET_SOLO_ENTITY_KEYS
+
 CLEAR_MIX_SOLO_KEYS: tuple[str, ...] = tuple(
     key
     for key, ref in sorted(ENTITY_REGISTRY.items())

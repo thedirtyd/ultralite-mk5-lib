@@ -8,6 +8,10 @@ from ultralite_mk5_lib.entities import resolve_entity
 from ultralite_mk5_lib.input_toggles import InputToggleCommand
 from ultralite_mk5_lib.levels import LevelCommand
 from ultralite_mk5_lib.mutes import MuteCommand, prepare_mute_command, resolve_solo_bus_entity
+from ultralite_mk5_lib.pans import (
+    PanCommand,
+    prepare_pan_command,
+)
 from ultralite_mk5_lib.solos import (
     SoloCommand,
     prepare_solo_command,
@@ -85,6 +89,17 @@ def apply_set_solo(
     return command
 
 
+def apply_set_pan(
+    device: UltraLiteMk5,
+    key: str,
+    value: str | float | None = None,
+) -> PanCommand:
+    """Set pan on one mix crosspoint (kiMixPan)."""
+    command = prepare_pan_command(key, value)
+    device.mix.fader_by_key(command.key).set_pan(command.pan)
+    return command
+
+
 def apply_clear_mix_solo(device: UltraLiteMk5, key: str) -> None:
     """Clear all kiMixSolo flags on one mix output bus."""
     from ultralite_mk5_lib.enums import Buses
@@ -147,3 +162,26 @@ def apply_set_optical_input_mode(device: UltraLiteMk5, mode: str) -> None:
 
 def apply_set_optical_output_mode(device: UltraLiteMk5, mode: str) -> None:
     device.settings.optical_output_mode = mode
+
+
+def apply_set_input_monitor(
+    device: UltraLiteMk5,
+    bus: str,
+    input_index: int,
+    value: str | None = None,
+) -> "InputMonitorState":
+    """Enable, disable, or toggle HOME-tab input monitoring on main or phones."""
+    from ultralite_mk5_lib.input_monitor import (
+        input_monitor_button_state,
+        input_monitor_gain_och,
+        resolve_input_monitor_enabled,
+        set_input_monitor,
+        validate_input_monitor_index,
+    )
+
+    gain_och = input_monitor_gain_och(bus)
+    validate_input_monitor_index(input_index)
+    current = input_monitor_button_state(device.state.props, input_index, gain_och)
+    enabled = resolve_input_monitor_enabled(value, current=current)
+    set_input_monitor(device, input_index, gain_och, enabled=enabled)
+    return input_monitor_button_state(device.state.props, input_index, gain_och)
