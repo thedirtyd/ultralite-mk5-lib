@@ -7,7 +7,9 @@ import math
 import struct
 import threading
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
+
+NotifyKind = Literal["meters", "props", "local"]
 
 from ultralite_mk5_lib.buses import MIX_BUS_MUTE_INDICES, stereo_bus_muted
 from ultralite_mk5_lib.mix_buses import build_mix_bus_fader_matrix
@@ -257,6 +259,13 @@ class DeviceState:
         self._meters_received = False
         self._frame_count = 0
         self._observers: list[Callable[[], None]] = []
+        self._last_notify_kind: NotifyKind = "props"
+
+    @property
+    def last_notify_kind(self) -> NotifyKind:
+        """Kind of the most recent observer notification."""
+        with self._lock:
+            return self._last_notify_kind
 
     @property
     def props(self) -> dict[str, dict[int, Any]]:
@@ -303,6 +312,7 @@ class DeviceState:
             self._meters = [K_MIN_METER_DB] * NUM_METERS
             self._meters_received = False
             self._frame_count = 0
+            self._last_notify_kind = "local"
             self._notify_observers()
 
     def apply_frame(self, data: bytes) -> None:
@@ -321,6 +331,7 @@ class DeviceState:
         """Update one props slot in local state (used after outbound commands)."""
         with self._lock:
             self._props.setdefault(prop_key, {})[index] = value
+            self._last_notify_kind = "local"
             self._notify_observers()
 
     def _apply_single_frame(self, data: bytes) -> None:
@@ -331,14 +342,17 @@ class DeviceState:
 
         with self._lock:
             self._frame_count += 1
+            notify_kind: NotifyKind = "props"
 
             if msg_id == K_METERS_ID:
                 peaks = decode_meter_peaks(data)
                 n = min(len(peaks), NUM_METERS)
                 self._meters[:n] = peaks[:n]
                 self._meters_received = True
+                notify_kind = "meters"
             elif msg_id in PROPERTY_TABLE:
                 if len(data) < 4:
+                    self._last_notify_kind = notify_kind
                     self._notify_observers()
                     return
                 index = struct.unpack(">H", data[2:4])[0]
@@ -347,6 +361,7 @@ class DeviceState:
                 if value is not None:
                     self._props.setdefault(key, {})[index] = value
 
+            self._last_notify_kind = notify_kind
             self._notify_observers()
 
     def _notify_observers(self) -> None:

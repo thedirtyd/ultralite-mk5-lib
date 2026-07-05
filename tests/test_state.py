@@ -143,5 +143,22 @@ class DeviceStateTests(unittest.TestCase):
         self.assertEqual(state.meters[0], -5.0)
 
 
+    def test_meter_frame_sets_last_notify_kind(self) -> None:
+        state = DeviceState()
+        data = struct.pack(">HH", K_METERS_ID, 0) + bytes([10, 20])
+        state.apply_frame(data)
+        self.assertEqual(state.last_notify_kind, "meters")
+
+    def test_prop_frame_sets_last_notify_kind(self) -> None:
+        state = DeviceState()
+        state.apply_frame(inbound_int32_frame(K_SAMPLE_RATE_ID, 0, 48000))
+        self.assertEqual(state.last_notify_kind, "props")
+
+    def test_set_prop_local_sets_last_notify_kind(self) -> None:
+        state = DeviceState()
+        state.set_prop_local("sample_rate", 0, 48000)
+        self.assertEqual(state.last_notify_kind, "local")
+
+
 if __name__ == "__main__":
     unittest.main()
