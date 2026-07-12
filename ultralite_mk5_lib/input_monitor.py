@@ -36,36 +36,93 @@ def validate_input_monitor_index(gain_ich: int) -> None:
         )
 
 
+def _analog_left_ich(gain_ich: int) -> int:
+    return gain_ich & 0xFE
+
+
+def _analog_pair_linked(props: dict[str, dict[int, Any]], gain_ich: int) -> bool:
+    mix_stereo = props.get("mix_stereo", {})
+    return bool(mix_stereo.get(_analog_left_ich(gain_ich), 0))
+
+
+def _crosspoint_at_monitor_preset(
+    props: dict[str, dict[int, Any]],
+    gain_ich: int,
+    gain_och: int,
+    *,
+    check_pan: bool,
+) -> bool:
+    flat = mix_fader_index(gain_ich, gain_och)
+    mix_faders = props.get("mix_fader", {})
+    mix_mutes = props.get("mix_mute", {})
+    mix_pans = props.get("mix_pan", {})
+
+    fader = mix_faders.get(flat)
+    if fader is None or fader <= 0:
+        return False
+    if mix_mutes.get(flat, 0) != 0:
+        return False
+
+    rounded_fader = round(100 * float(fader)) / 100
+    if rounded_fader != _FADER_ON_GAIN:
+        return False
+
+    if check_pan:
+        pan = mix_pans.get(flat, PAN_CENTER)
+        if pan is None or not math.isclose(float(pan), PAN_CENTER, abs_tol=1e-4):
+            return False
+    return True
+
+
+def _pair_button_state(
+    props: dict[str, dict[int, Any]],
+    left_ich: int,
+    gain_och: int,
+) -> InputMonitorState:
+    """Aggregate monitor state for a stereo-linked analog pair."""
+    right_ich = left_ich + 1
+    left_flat = mix_fader_index(left_ich, gain_och)
+    right_flat = mix_fader_index(right_ich, gain_och)
+    mix_faders = props.get("mix_fader", {})
+
+    left_fader = mix_faders.get(left_flat)
+    right_fader = mix_faders.get(right_flat)
+    left_off = left_fader is None or left_fader <= 0
+    right_off = right_fader is None or right_fader <= 0
+
+    if left_off and right_off:
+        return "off"
+
+    if (
+        not left_off
+        and not right_off
+        and _crosspoint_at_monitor_preset(props, left_ich, gain_och, check_pan=False)
+        and _crosspoint_at_monitor_preset(props, right_ich, gain_och, check_pan=False)
+    ):
+        return "on"
+    return "edited"
+
+
 def input_monitor_button_state(
     props: dict[str, dict[int, Any]],
     gain_ich: int,
     gain_och: int,
 ) -> InputMonitorState:
-    """Mirror CueMix home.js getChInputMonitorState (excluding talkback disabled)."""
+    """Return monitor button state for one analog input on one monitor bus.
+
+    When the input pair is stereo-linked, both members report the same
+    aggregate state: off when both crosspoints are off, on when both are at
+    the monitor preset, and edited otherwise.
+    """
     validate_input_monitor_index(gain_ich)
+    if _analog_pair_linked(props, gain_ich):
+        return _pair_button_state(props, _analog_left_ich(gain_ich), gain_och)
+
     flat = mix_fader_index(gain_ich, gain_och)
-
-    mix_faders = props.get("mix_fader", {})
-    mix_mutes = props.get("mix_mute", {})
-    mix_pans = props.get("mix_pan", {})
-    mix_stereo = props.get("mix_stereo", {})
-
-    fader = mix_faders.get(flat)
+    fader = props.get("mix_fader", {}).get(flat)
     if fader is None or fader <= 0:
         return "off"
-
-    stereo = bool(mix_stereo.get(gain_ich, 0))
-    mute = mix_mutes.get(flat, 0)
-    pan = mix_pans.get(flat, PAN_CENTER)
-
-    rounded_fader = round(100 * float(fader)) / 100
-    if (
-        not stereo
-        and mute == 0
-        and pan is not None
-        and math.isclose(float(pan), PAN_CENTER, abs_tol=1e-4)
-        and rounded_fader == _FADER_ON_GAIN
-    ):
+    if _crosspoint_at_monitor_preset(props, gain_ich, gain_och, check_pan=True):
         return "on"
     return "edited"
 
@@ -77,15 +134,34 @@ def set_input_monitor(
     *,
     enabled: bool,
 ) -> None:
-    """Apply CueMix enableInputMonitorState for one analog input on one monitor bus."""
-    validate_input_monitor_index(gain_ich)
-    fader = device.mix[Buses(gain_och)].channel[gain_ich].fader
+    """Apply CueMix enableInputMonitorState for one analog input on one monitor bus.
 
+    When the input pair is stereo-linked, either member toggles both crosspoints
+    atomically and the stereo link is preserved.
+    """
+    validate_input_monitor_index(gain_ich)
+    bus = device.mix[Buses(gain_och)]
+    left_ich = _analog_left_ich(gain_ich)
+    linked = bool(device.state.props.get("mix_stereo", {}).get(left_ich, 0))
+
+    if linked:
+        left_fader = bus.channel[left_ich].fader
+        right_fader = bus.channel[left_ich + 1].fader
+        if not enabled:
+            left_fader._write_wire_gain(0.0, mirror_stereo=True)
+            return
+
+        for fader in (left_fader, right_fader):
+            fader.set_muted(False)
+            fader.set_soloed(False)
+        left_fader._write_wire_gain(_FADER_ON_GAIN, mirror_stereo=True)
+        return
+
+    fader = bus.channel[gain_ich].fader
     if not enabled:
         fader._write_wire_gain(0.0, mirror_stereo=False)
         return
 
-    device.mix.stereo[gain_ich & 0xFE].set_linked(False)
     fader.set_pan(PAN_CENTER)
     fader.set_muted(False)
     fader.set_soloed(False)

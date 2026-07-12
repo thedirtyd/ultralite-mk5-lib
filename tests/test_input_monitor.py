@@ -69,6 +69,74 @@ class InputMonitorButtonStateTests(unittest.TestCase):
         }
         self.assertEqual(input_monitor_button_state(props, 2, INPUT_MONITOR_MAIN_OCH), "edited")
 
+    def test_stereo_linked_on_when_both_preset(self) -> None:
+        left_flat = mix_fader_index(0, INPUT_MONITOR_MAIN_OCH)
+        right_flat = mix_fader_index(1, INPUT_MONITOR_MAIN_OCH)
+        props = {
+            "mix_fader": {left_flat: 1.0, right_flat: 1.0},
+            "mix_mute": {left_flat: 0, right_flat: 0},
+            "mix_pan": {left_flat: 0.25, right_flat: 0.75},
+            "mix_stereo": {0: 1},
+        }
+        self.assertEqual(
+            input_monitor_button_state(props, 0, INPUT_MONITOR_MAIN_OCH),
+            "on",
+        )
+        self.assertEqual(
+            input_monitor_button_state(props, 1, INPUT_MONITOR_MAIN_OCH),
+            "on",
+        )
+
+    def test_stereo_linked_off_when_both_zero(self) -> None:
+        left_flat = mix_fader_index(2, INPUT_MONITOR_PHONES_OCH)
+        right_flat = mix_fader_index(3, INPUT_MONITOR_PHONES_OCH)
+        props = {
+            "mix_fader": {left_flat: 0.0, right_flat: 0.0},
+            "mix_mute": {left_flat: 0, right_flat: 0},
+            "mix_pan": {left_flat: 0.5, right_flat: 0.5},
+            "mix_stereo": {2: 1},
+        }
+        self.assertEqual(
+            input_monitor_button_state(props, 2, INPUT_MONITOR_PHONES_OCH),
+            "off",
+        )
+        self.assertEqual(
+            input_monitor_button_state(props, 3, INPUT_MONITOR_PHONES_OCH),
+            "off",
+        )
+
+    def test_stereo_linked_edited_when_one_off(self) -> None:
+        left_flat = mix_fader_index(4, INPUT_MONITOR_MAIN_OCH)
+        right_flat = mix_fader_index(5, INPUT_MONITOR_MAIN_OCH)
+        props = {
+            "mix_fader": {left_flat: 1.0, right_flat: 0.0},
+            "mix_mute": {left_flat: 0, right_flat: 0},
+            "mix_pan": {left_flat: 0.5, right_flat: 0.5},
+            "mix_stereo": {4: 1},
+        }
+        self.assertEqual(
+            input_monitor_button_state(props, 4, INPUT_MONITOR_MAIN_OCH),
+            "edited",
+        )
+        self.assertEqual(
+            input_monitor_button_state(props, 5, INPUT_MONITOR_MAIN_OCH),
+            "edited",
+        )
+
+    def test_stereo_lookup_uses_left_index(self) -> None:
+        left_flat = mix_fader_index(0, INPUT_MONITOR_MAIN_OCH)
+        right_flat = mix_fader_index(1, INPUT_MONITOR_MAIN_OCH)
+        props = {
+            "mix_fader": {left_flat: 1.0, right_flat: 1.0},
+            "mix_mute": {left_flat: 0, right_flat: 0},
+            "mix_pan": {left_flat: 0.5, right_flat: 0.5},
+            "mix_stereo": {0: 1},
+        }
+        self.assertEqual(
+            input_monitor_button_state(props, 1, INPUT_MONITOR_MAIN_OCH),
+            "on",
+        )
+
     def test_validate_index(self) -> None:
         with self.assertRaises(ValueError):
             validate_input_monitor_index(8)

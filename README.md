@@ -83,6 +83,7 @@ ultralite-mk5> exit
 | `set-optical-output-mode MODE`| Optical output: `adat` or `toslink`                           |
 | `set-level KEY LEVEL`         | Set level by entity key (`0.75`, `-6db`, `-inf`, `12`, …) |
 | `set-channel-mode KEY MODE`   | Link/unlink input pair as `stereo` or `mono` (physical inputs and host returns) |
+| `set-input-monitor BUS INPUT [on\|off\|toggle]` | Enable/disable HOME tab direct input monitoring on `main` or `phones` (inputs 0–7). Linked analog pairs toggle both channels atomically and remain linked. |
 | `set-mute KEY [VALUE]`        | Mute/unmute by entity key (default VALUE: mute)           |
 | `solo-output-bus KEY`         | Unmute one bus, mute all others (reverb unchanged)        |
 | `help`                        | Command help                                              |
