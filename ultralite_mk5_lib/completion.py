@@ -98,6 +98,8 @@ _TOGGLE_VALUE_CHOICES: tuple[str, ...] = (
     "0",
 )
 
+_AB_PATH_CHOICES: tuple[str, ...] = ("a", "b", "both")
+
 _OPTICAL_MODE_CHOICES: tuple[str, ...] = ("adat", "toslink")
 
 _CHANNEL_MODE_CHOICES: tuple[str, ...] = ("stereo", "mono")
@@ -234,6 +236,16 @@ def completion_candidates(line: str, endidx: int) -> list[str]:
     if command in ("set-optical-input-mode", "set-optical-output-mode"):
         if token_index == 1:
             return _filter_prefix(_OPTICAL_MODE_CHOICES, prefix)
+        return []
+
+    if command == "set-ab-monitor":
+        if token_index == 1:
+            return _filter_prefix(_TOGGLE_VALUE_CHOICES, prefix)
+        return []
+
+    if command == "set-ab-path":
+        if token_index == 1:
+            return _filter_prefix(_AB_PATH_CHOICES, prefix)
         return []
 
     if command == "set-sample-rate":

@@ -10,6 +10,9 @@ from ultralite_mk5_lib.protocol import (
     K_BUS_MUTE_ID,
     K_INPUT_GAIN_ID,
     K_MAIN_TRIM_ID,
+    K_AB_ENABLE_ID,
+    K_A_ENABLE_ID,
+    K_B_ENABLE_ID,
     K_MIX_FADER_ID,
     K_MIX_PAN_ID,
     K_MIX_MUTE_ID,
@@ -22,6 +25,9 @@ from ultralite_mk5_lib.protocol import (
     make_input_48v_frame,
     make_input_gain_frame,
     make_main_trim_frame,
+    make_ab_enable_frame,
+    make_a_enable_frame,
+    make_b_enable_frame,
     make_mix_fader_frame,
     make_mix_pan_frame,
     make_mix_mute_frame,
@@ -114,6 +120,19 @@ class MakeFrameTests(unittest.TestCase):
         frame = make_main_trim_frame(0, 6)
         assert_frame_header(frame, K_MAIN_TRIM_ID, 0)
         self.assertEqual(frame[6], 6)
+
+    def test_ab_monitor_frames(self) -> None:
+        frame = make_ab_enable_frame(1)
+        assert_frame_header(frame, K_AB_ENABLE_ID, 0)
+        self.assertEqual(frame[6], 1)
+
+        frame_a = make_a_enable_frame(1)
+        assert_frame_header(frame_a, K_A_ENABLE_ID, 0)
+        self.assertEqual(frame_a[6], 1)
+
+        frame_b = make_b_enable_frame(0)
+        assert_frame_header(frame_b, K_B_ENABLE_ID, 0)
+        self.assertEqual(frame_b[6], 0)
 
     def test_optical_mode_frame(self) -> None:
         frame = make_optical_mode_frame(1, 1)

@@ -4,6 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ultralite_mk5_lib.ab_monitor import (
+    ABMonitorPath,
+    ab_monitor_enabled,
+    ab_monitor_path,
+    parse_ab_monitor_enabled,
+    parse_ab_monitor_path,
+    set_ab_monitor_enabled,
+    set_ab_monitor_path,
+)
 from ultralite_mk5_lib.enums import LineOutputs, Monitors
 from ultralite_mk5_lib.levels import LevelCommand, prepare_level_command
 from ultralite_mk5_lib.outputs import (
@@ -20,6 +29,41 @@ if TYPE_CHECKING:
     from ultralite_mk5_lib.client import UltraLiteMk5
 
 from ultralite_mk5_lib.views.transport import send_binary, send_prop_local
+
+
+class ABMonitorHandle:
+    """CueMix Outputs tab A/B monitoring controls."""
+
+    def __init__(self, device: UltraLiteMk5) -> None:
+        self._device = device
+
+    @property
+    def enabled(self) -> bool | None:
+        return ab_monitor_enabled(self._device.state.props)
+
+    @enabled.setter
+    def enabled(self, value: bool) -> None:
+        self.set_enabled(value)
+
+    @property
+    def path(self) -> ABMonitorPath | None:
+        return ab_monitor_path(self._device.state.props)
+
+    @path.setter
+    def path(self, value: str) -> None:
+        self.set_path(value)
+
+    def set_enabled(self, enabled: bool) -> None:
+        set_ab_monitor_enabled(self._device, enabled)
+
+    def set_enabled_token(self, value: str | None = None) -> None:
+        enabled = parse_ab_monitor_enabled(
+            value if value is not None else "on"
+        )
+        self.set_enabled(enabled)
+
+    def set_path(self, path: str) -> None:
+        set_ab_monitor_path(self._device, parse_ab_monitor_path(path))
 
 
 class MonitorTrimHandle:
@@ -155,6 +199,10 @@ class OutputsView:
     @property
     def line(self) -> _LineProxy:
         return _LineProxy(self)
+
+    @property
+    def ab_monitor(self) -> ABMonitorHandle:
+        return ABMonitorHandle(self._device)
 
     def trim_by_key(self, key: str) -> MonitorTrimHandle | LineOutputTrimHandle:
         normalized = key.strip().upper()

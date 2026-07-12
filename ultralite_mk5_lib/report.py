@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ultralite_mk5_lib.ab_monitor import build_ab_monitor_state
 from ultralite_mk5_lib.entity_keys import mix_bus_fader_entity_key
 from ultralite_mk5_lib.eq import build_bus_eq_state, build_input_eq_state
 from ultralite_mk5_lib.inputs import INPUT_GAIN_CHANNELS, build_input_gains, build_mic_pre_state
@@ -144,6 +145,7 @@ def build_state_report(snap: dict[str, Any]) -> dict[str, Any]:
             "optical_output_mode": optical_output_mode_from_snap(snap),
             "frame_count": snap.get("frame_count", 0),
         },
+        "ab_monitor": build_ab_monitor_state(props),
         "monitor_trim": monitor_trim,
         "input_gain": input_gain,
         "output_trim": output_trim,

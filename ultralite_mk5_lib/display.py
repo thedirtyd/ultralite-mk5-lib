@@ -11,6 +11,7 @@ from rich.live import Live
 from rich.table import Table
 from rich.text import Text
 
+from ultralite_mk5_lib.ab_monitor import build_ab_monitor_state
 from ultralite_mk5_lib.mix_buses import build_mix_bus_fader_matrix, mix_fader_gain_to_db
 from ultralite_mk5_lib.inputs import build_input_gains, build_mic_pre_state
 from ultralite_mk5_lib.meters import iter_visible_meter_slots, resolve_meter_slot
@@ -501,6 +502,19 @@ def print_state_snapshot(snap: dict[str, Any]) -> None:
     _console.print(
         f"Optical out:  {optical_output if optical_output is not None else 'n/a'}"
     )
+
+    ab_monitor = build_ab_monitor_state(snap.get("props", {}))
+    ab_enabled = ab_monitor.get("enabled")
+    ab_path = ab_monitor.get("path")
+    if ab_enabled is None and ab_path is None:
+        ab_line = "n/a"
+    elif not ab_enabled:
+        ab_line = "off"
+    elif ab_path in (None, "none"):
+        ab_line = "on"
+    else:
+        ab_line = f"on ({ab_path})"
+    _console.print(f"A/B monitor:  {ab_line}")
 
     _console.print()
     _print_monitors_trim_table(snap)

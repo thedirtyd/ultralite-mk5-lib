@@ -164,6 +164,34 @@ def apply_set_optical_output_mode(device: UltraLiteMk5, mode: str) -> None:
     device.settings.optical_output_mode = mode
 
 
+def apply_set_ab_monitor(device: UltraLiteMk5, value: str | None = None) -> str:
+    """Enable or disable A/B monitoring (kABEnable)."""
+    from ultralite_mk5_lib.ab_monitor import (
+        DEFAULT_AB_MONITOR_VALUE,
+        format_ab_monitor_summary,
+        parse_ab_monitor_enabled,
+        set_ab_monitor_enabled,
+    )
+
+    enabled = parse_ab_monitor_enabled(
+        value if value is not None else DEFAULT_AB_MONITOR_VALUE
+    )
+    write = set_ab_monitor_enabled(device, enabled)
+    return format_ab_monitor_summary(write)
+
+
+def apply_set_ab_path(device: UltraLiteMk5, path: str) -> str:
+    """Select A, B, or both monitor paths."""
+    from ultralite_mk5_lib.ab_monitor import (
+        format_ab_monitor_summary,
+        parse_ab_monitor_path,
+        set_ab_monitor_path,
+    )
+
+    write = set_ab_monitor_path(device, parse_ab_monitor_path(path))
+    return format_ab_monitor_summary(write)
+
+
 def apply_set_input_monitor(
     device: UltraLiteMk5,
     bus: str,

@@ -19,6 +19,8 @@ from ultralite_mk5_lib.commands import (
     apply_set_mute,
     apply_set_optical_input_mode,
     apply_set_optical_output_mode,
+    apply_set_ab_monitor,
+    apply_set_ab_path,
     apply_set_sample_rate,
     apply_set_solo,
     apply_set_pan,
@@ -35,6 +37,7 @@ from ultralite_mk5_lib.levels import format_level_summary, fix_set_level_argv
 from ultralite_mk5_lib.mix_buses import STEREO_CAPABLE_MAX_GAIN_ICH
 from ultralite_mk5_lib.mutes import DEFAULT_MUTE_VALUE, format_mute_summary
 from ultralite_mk5_lib.pans import DEFAULT_PAN_VALUE, format_pan_summary
+from ultralite_mk5_lib.ab_monitor import DEFAULT_AB_MONITOR_VALUE
 from ultralite_mk5_lib.input_monitor import DEFAULT_INPUT_MONITOR_VALUE
 from ultralite_mk5_lib.solos import DEFAULT_SOLO_VALUE, format_solo_summary
 from ultralite_mk5_lib.protocol import (
@@ -53,6 +56,8 @@ INTERACTIVE_COMMANDS = (
     "set-sample-rate",
     "set-optical-input-mode",
     "set-optical-output-mode",
+    "set-ab-monitor",
+    "set-ab-path",
     "set-level",
     "set-channel-mode",
     "set-mute",
@@ -147,6 +152,14 @@ def run_set_optical_input_mode(device: UltraLiteMk5, mode: str) -> None:
 def run_set_optical_output_mode(device: UltraLiteMk5, mode: str) -> None:
     apply_set_optical_output_mode(device, mode)
     print(f"Set optical output mode to {mode}")
+
+
+def run_set_ab_monitor(device: UltraLiteMk5, value: str | None = None) -> None:
+    print(apply_set_ab_monitor(device, value))
+
+
+def run_set_ab_path(device: UltraLiteMk5, path: str) -> None:
+    print(apply_set_ab_path(device, path))
 
 
 def run_set_mute(device: UltraLiteMk5, key: str, value: str | None = None) -> None:
@@ -351,6 +364,23 @@ def _add_set_pan_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_set_ab_monitor_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "value",
+        nargs="?",
+        default=DEFAULT_AB_MONITOR_VALUE,
+        help="on/true/1 or off/false/0 (default: on)",
+    )
+
+
+def _add_set_ab_path_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "path",
+        choices=("a", "b", "both"),
+        help="Monitor path: a, b, or both",
+    )
+
+
 def _add_set_input_monitor_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "bus",
@@ -433,6 +463,18 @@ def _command_help_lines() -> dict[str, list[str]]:
             f"  MODE: {optical_mode_choices_text()}",
             "  Examples: set-optical-output-mode adat",
             "            set-optical-output-mode toslink",
+        ],
+        "set-ab-monitor": [
+            "set-ab-monitor [VALUE]",
+            "  VALUE: on/true/1 or off/false/0 (default: on)",
+            "  Examples: set-ab-monitor on",
+            "            set-ab-monitor off",
+        ],
+        "set-ab-path": [
+            "set-ab-path PATH",
+            "  PATH: a, b, or both",
+            "  Examples: set-ab-path a",
+            "            set-ab-path both",
         ],
         "set-level": [
             "set-level KEY LEVEL",
@@ -571,6 +613,20 @@ def build_interactive_parser() -> argparse.ArgumentParser:
     _add_set_optical_mode_args(set_optical_output)
     set_optical_output.set_defaults(func=_interactive_set_optical_output_mode)
 
+    set_ab_monitor = add_command(
+        "set-ab-monitor",
+        help="Enable or disable A/B monitoring",
+    )
+    _add_set_ab_monitor_args(set_ab_monitor)
+    set_ab_monitor.set_defaults(func=_interactive_set_ab_monitor)
+
+    set_ab_path = add_command(
+        "set-ab-path",
+        help="Select A/B monitor path (a, b, or both)",
+    )
+    _add_set_ab_path_args(set_ab_path)
+    set_ab_path.set_defaults(func=_interactive_set_ab_path)
+
     set_level = add_command("set-level", help="Set level by entity key")
     _add_set_level_args(set_level)
     set_level.set_defaults(func=_interactive_set_level)
@@ -700,6 +756,18 @@ def _interactive_set_optical_output_mode(
     session: InteractiveSession, args: argparse.Namespace
 ) -> None:
     run_set_optical_output_mode(session.require_device(), args.mode)
+
+
+def _interactive_set_ab_monitor(
+    session: InteractiveSession, args: argparse.Namespace
+) -> None:
+    run_set_ab_monitor(session.require_device(), args.value)
+
+
+def _interactive_set_ab_path(
+    session: InteractiveSession, args: argparse.Namespace
+) -> None:
+    run_set_ab_path(session.require_device(), args.path)
 
 
 def _interactive_set_level(session: InteractiveSession, args: argparse.Namespace) -> None:

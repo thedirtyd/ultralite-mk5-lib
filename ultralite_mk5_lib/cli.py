@@ -19,6 +19,8 @@ from ultralite_mk5_lib.interactive import (
     _add_get_state_args,
     _add_monitor_meters_args,
     _add_set_optical_mode_args,
+    _add_set_ab_monitor_args,
+    _add_set_ab_path_args,
     _add_solo_output_bus_args,
     _add_set_solo_args,
     _add_set_pan_args,
@@ -42,6 +44,8 @@ from ultralite_mk5_lib.interactive import (
     run_set_eq,
     run_set_optical_input_mode,
     run_set_optical_output_mode,
+    run_set_ab_monitor,
+    run_set_ab_path,
     run_set_sample_rate,
     run_set_solo,
     run_set_pan,
@@ -131,6 +135,20 @@ def _cmd_set_optical_input_mode(args: argparse.Namespace) -> int:
 def _cmd_set_optical_output_mode(args: argparse.Namespace) -> int:
     with _device_from_args(args) as device:
         run_set_optical_output_mode(device, args.mode)
+        print(f" on {device.url}")
+    return 0
+
+
+def _cmd_set_ab_monitor(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_set_ab_monitor(device, args.value)
+        print(f" on {device.url}")
+    return 0
+
+
+def _cmd_set_ab_path(args: argparse.Namespace) -> int:
+    with _device_from_args(args) as device:
+        run_set_ab_path(device, args.path)
         print(f" on {device.url}")
     return 0
 
@@ -263,6 +281,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_set_optical_mode_args(set_optical_output)
     set_optical_output.set_defaults(func=_cmd_set_optical_output_mode)
+
+    set_ab_monitor = subparsers.add_parser(
+        "set-ab-monitor",
+        help="Enable or disable A/B monitoring",
+    )
+    _add_set_ab_monitor_args(set_ab_monitor)
+    set_ab_monitor.set_defaults(func=_cmd_set_ab_monitor)
+
+    set_ab_path = subparsers.add_parser(
+        "set-ab-path",
+        help="Select A/B monitor path (a, b, or both)",
+    )
+    _add_set_ab_path_args(set_ab_path)
+    set_ab_path.set_defaults(func=_cmd_set_ab_path)
 
     set_level = subparsers.add_parser(
         "set-level",

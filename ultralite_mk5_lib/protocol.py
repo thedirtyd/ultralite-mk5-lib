@@ -28,6 +28,11 @@ K_INPUT_48V_ID = 5004
 K_OUTPUT_TRIM_ID = 5000
 K_MAIN_TRIM_ID = 5011
 
+# kABEnable / kAEnable / kBEnable in dev.js — A/B monitoring
+K_AB_ENABLE_ID = 5015
+K_A_ENABLE_ID = 5016
+K_B_ENABLE_ID = 5017
+
 # kiMixSolo in dev.js
 K_MIX_SOLO_ID = 1018
 
@@ -220,6 +225,18 @@ def make_output_trim_frame(index: int, value: int) -> bytes:
 
 def make_main_trim_frame(index: int, value: int) -> bytes:
     return make_byte_property(K_MAIN_TRIM_ID, index, value)
+
+
+def make_ab_enable_frame(value: int) -> bytes:
+    return make_byte_property(K_AB_ENABLE_ID, 0, value)
+
+
+def make_a_enable_frame(value: int) -> bytes:
+    return make_byte_property(K_A_ENABLE_ID, 0, value)
+
+
+def make_b_enable_frame(value: int) -> bytes:
+    return make_byte_property(K_B_ENABLE_ID, 0, value)
 
 
 def make_sample_rate_frame(rate: int) -> bytes:

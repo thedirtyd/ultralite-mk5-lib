@@ -13,6 +13,7 @@ class BuildStateReportTests(unittest.TestCase):
     def test_top_level_sections(self) -> None:
         report = build_state_report(minimal_snapshot())
         self.assertIn("device", report)
+        self.assertIn("ab_monitor", report)
         self.assertIn("monitor_trim", report)
         self.assertIn("input_gain", report)
         self.assertIn("input_eq", report)
@@ -27,6 +28,10 @@ class BuildStateReportTests(unittest.TestCase):
         self.assertEqual(device["name"], "UltraLite mk5")
         self.assertEqual(device["sample_rate"], 48000)
         self.assertEqual(device["optical_input_mode"], "adat")
+
+    def test_ab_monitor_fields(self) -> None:
+        report = build_state_report(minimal_snapshot())
+        self.assertEqual(report["ab_monitor"], {"enabled": False, "path": "none"})
 
     def test_mix_bus_faders_have_keys(self) -> None:
         report = build_state_report(minimal_snapshot())

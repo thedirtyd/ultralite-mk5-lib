@@ -46,6 +46,9 @@ PROPERTY_TABLE: dict[int, tuple[str, str]] = {
     5000: ("output_trim", "byte"),   # koTrim — DAC trims (phones, lines)
     5010: ("fpga_patch", "byte"),    # kFPGAPatch — output routing + meter map
     5011: ("main_trim", "byte"),     # kMainTrim — Monitor / main out trim
+    5015: ("ab_enable", "byte"),     # kABEnable — A/B monitoring master on/off
+    5016: ("a_enable", "byte"),     # kAEnable — A/B monitoring A path
+    5017: ("b_enable", "byte"),     # kBEnable — A/B monitoring B path
     5019: ("mute_enable", "byte"),   # kMuteEnable — Monitor hardware mute
     1002: ("input_eq_mode", "byte"),
     1003: ("input_eq_bypass", "byte"),

@@ -53,6 +53,9 @@ def minimal_props(**overrides: dict[int, Any]) -> dict[str, dict[int, Any]]:
         "output_trim": {6: 0, 8: 6, 10: 6},
         "main_trim": {0: 0},
         "mute_enable": {0: 0},
+        "ab_enable": {0: 0},
+        "a_enable": {0: 0},
+        "b_enable": {0: 0},
         "fpga_patch": {38: 46, 39: 47, 42: 64, 43: 65},
     }
     for key, indices in overrides.items():

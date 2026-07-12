@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from ultralite_mk5_lib.ab_monitor import build_ab_monitor_state
 from ultralite_mk5_lib.entity_keys import output_trim_entity_key
 
 # PatchBase + LocalOutputs from cuemix/www/dev.js (UltraLite mk5).
@@ -172,6 +173,7 @@ def build_output_monitoring(
         phones_meters = None
 
     return {
+        "ab_monitor": build_ab_monitor_state(props),
         "monitor": {
             "trim_db": trim_byte_to_db(main_trim.get(MAIN_TRIM_INDEX)),
             "muted": (

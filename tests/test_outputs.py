@@ -78,6 +78,17 @@ class BuildOutputMonitoringTests(unittest.TestCase):
         monitoring = build_output_monitoring(minimal_props(), [], meters_received=False)
         self.assertIsNone(monitoring["monitor"]["meters_db"])
 
+    def test_ab_monitor_state(self) -> None:
+        monitoring = build_output_monitoring(
+            minimal_props(ab_enable={0: 1}, a_enable={0: 1}, b_enable={0: 1}),
+            [],
+            meters_received=False,
+        )
+        self.assertEqual(
+            monitoring["ab_monitor"],
+            {"enabled": True, "path": "both"},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
