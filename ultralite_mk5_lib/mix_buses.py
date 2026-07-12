@@ -34,12 +34,21 @@ BUS_HOST_GAIN_ICH: dict[str, int | None] = {
 }
 
 _HOST_LEFT_ICH_TO_LABEL: dict[int, str] = {
-    18: "Host 1/2",
+    18: "Host 1-2",
     28: "Host Phones",
-    20: "Host 3/4",
-    22: "Host 5/6",
-    24: "Host 7/8",
-    26: "Host 9/10",
+    20: "Host 3-4",
+    22: "Host 5-6",
+    24: "Host 7-8",
+    26: "Host 9-10",
+}
+
+_HOST_CHANNEL_LABELS: dict[int, tuple[str, str]] = {
+    18: ("Host 1", "Host 2"),
+    20: ("Host 3", "Host 4"),
+    22: ("Host 5", "Host 6"),
+    24: ("Host 7", "Host 8"),
+    26: ("Host 9", "Host 10"),
+    28: ("Host Phones 1", "Host Phones 2"),
 }
 
 _HOST_NATIVE_BUS: dict[int, str | None] = {
@@ -72,12 +81,12 @@ class MixMatrixColumn:
 
 
 def _make_stereo_label(left: str, right: str) -> str:
-    """Combine left/right labels (e.g. Optical 1 + Optical 2 → Optical 1/2)."""
+    """Combine left/right labels (e.g. Optical 1 + Optical 2 → Optical 1-2)."""
     i = 0
     limit = min(len(left), len(right))
     while i < limit and left[i] == right[i]:
         i += 1
-    return f"{left[:i]}{left[i:]}/{right[i:]}"
+    return f"{left[:i]}{left[i:]}-{right[i:]}"
 
 
 def _is_stereo_capable(col: MixMatrixColumn) -> bool:
@@ -200,11 +209,12 @@ def _mix_matrix_columns(
     if _REVERB_NUM_CH[sri] > 0:
         cols.append(_mix_column("Reverb", "reverb", "reverb", 30))
 
-    for left_ich, label in _HOST_LEFT_ICH_TO_LABEL.items():
+    for left_ich in _HOST_LEFT_ICH_TO_LABEL:
+        left_label, right_label = _HOST_CHANNEL_LABELS[left_ich]
         native = _HOST_NATIVE_BUS[left_ich]
         cols.append(
             _mix_column(
-                f"{label} L",
+                left_label,
                 f"host-{left_ich}-l",
                 "host",
                 left_ich,
@@ -213,7 +223,7 @@ def _mix_matrix_columns(
         )
         cols.append(
             _mix_column(
-                f"{label} R",
+                right_label,
                 f"host-{left_ich}-r",
                 "host",
                 left_ich + 1,

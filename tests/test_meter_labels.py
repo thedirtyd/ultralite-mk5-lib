@@ -115,7 +115,7 @@ class TestBuildMeterNames(unittest.TestCase):
         right = names["METER_INPUT_MICIN02"]
         self.assertEqual(left["mono"], "Inputs - Mic In 1")
         self.assertEqual(right["mono"], "Inputs - Mic In 2")
-        self.assertEqual(left["stereo"], "Inputs - Mic In 1/2")
+        self.assertEqual(left["stereo"], "Inputs - Mic In 1-2")
         self.assertEqual(right["stereo"], left["stereo"])
 
     def test_output_trim_has_mono_only(self) -> None:
@@ -126,14 +126,14 @@ class TestBuildMeterNames(unittest.TestCase):
 
     def test_optical_pair_stereo_label(self) -> None:
         names = build_meter_names(minimal_snapshot())
-        self.assertEqual(names["METER_INPUT_OPTICAL01"]["stereo"], "Inputs - Optical 1/2")
+        self.assertEqual(names["METER_INPUT_OPTICAL01"]["stereo"], "Inputs - Optical 1-2")
         self.assertEqual(names["METER_INPUT_OPTICAL02"]["mono"], "Inputs - Optical 2")
 
     def test_spdif_pair_stereo_label(self) -> None:
         names = build_meter_names(minimal_snapshot())
         self.assertEqual(names["METER_INPUT_SPDIF01"]["mono"], "Inputs - S/PDIF 1")
         self.assertEqual(names["METER_INPUT_SPDIF02"]["mono"], "Inputs - S/PDIF 2")
-        self.assertEqual(names["METER_INPUT_SPDIF01"]["stereo"], "Inputs - S/PDIF 1/2")
+        self.assertEqual(names["METER_INPUT_SPDIF01"]["stereo"], "Inputs - S/PDIF 1-2")
         self.assertEqual(names["METER_INPUT_SPDIF02"]["stereo"], names["METER_INPUT_SPDIF01"]["stereo"])
 
     def test_192k_omits_optical_meters(self) -> None:

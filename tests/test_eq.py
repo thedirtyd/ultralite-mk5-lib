@@ -94,7 +94,7 @@ class EQReportTests(unittest.TestCase):
         self.assertIn("INPUTEQ_LINEIN03_B1", keys)
         self.assertNotIn("INPUTEQ_LINEIN04_B1", keys)
         line3 = next(row for row in rows if row["key"] == "INPUTEQ_LINEIN03_B1")
-        self.assertEqual(line3["channel"], "Line In 3/4")
+        self.assertEqual(line3["channel"], "Line In 3-4")
 
     def test_bus_eq_state_includes_all_buses(self) -> None:
         props = minimal_props(

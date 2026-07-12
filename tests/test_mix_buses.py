@@ -68,12 +68,12 @@ class MixMatrixColumnsTests(unittest.TestCase):
             sample_rate=48000,
             optical_input_mode=OPTICAL_MODE_ADAT,
         )
-        host_l = next(c for c in cols if c.label == "Host 1/2 L")
-        host_r = next(c for c in cols if c.label == "Host 1/2 R")
-        self.assertEqual(host_l.stereo_label, "Host 1/2")
+        host_l = next(c for c in cols if c.label == "Host 1")
+        host_r = next(c for c in cols if c.label == "Host 2")
+        self.assertEqual(host_l.stereo_label, "Host 1-2")
         self.assertEqual(host_r.stereo_label, None)
 
-        phones_l = next(c for c in cols if c.label == "Host Phones L")
+        phones_l = next(c for c in cols if c.label == "Host Phones 1")
         self.assertEqual(phones_l.stereo_label, "Host Phones")
 
 
