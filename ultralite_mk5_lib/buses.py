@@ -63,16 +63,16 @@ _REVERB_ROW = MixBusRow(
 MIX_BUS_MUTE_INDICES: dict[str, int] = {
     "main 1-2": 0,
     "phones": 10,
-    "line 3/4": 2,
+    "line 3-4": 2,
     "line 3": 2,
     "line 4": 3,
-    "line 5/6": 4,
+    "line 5-6": 4,
     "line 5": 4,
     "line 6": 5,
-    "line 7/8": 6,
+    "line 7-8": 6,
     "line 7": 6,
     "line 8": 7,
-    "line 9/10": 8,
+    "line 9-10": 8,
     "line 9": 8,
     "line 10": 9,
     REVERB_BUS_NAME: REVERB_BUS_MUTE_INDEX,
@@ -82,10 +82,10 @@ MIX_BUS_MUTE_INDICES: dict[str, int] = {
 MIX_BUS_NAMES: tuple[str, ...] = (
     "main 1-2",
     "phones",
-    "line 3/4",
-    "line 5/6",
-    "line 7/8",
-    "line 9/10",
+    "line 3-4",
+    "line 5-6",
+    "line 7-8",
+    "line 9-10",
     REVERB_BUS_NAME,
 )
 
@@ -96,7 +96,7 @@ SOLO_BUS_MUTE_INDICES: tuple[int, ...] = (0, 10, 2, 3, 4, 5, 6, 7, 8, 9)
 def _line_pair_name(left: int, *, linked: bool, right: bool = False) -> str:
     first = _LINE_BUS_LEFT_TO_CHAN[left]
     if linked:
-        return f"line {first}/{first + 1}"
+        return f"line {first}-{first + 1}"
     if right:
         return f"line {first + 1}"
     return f"line {first}"

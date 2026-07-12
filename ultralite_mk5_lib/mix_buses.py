@@ -24,10 +24,10 @@ ColumnKind = Literal["input", "reverb", "host", "out"]
 # Host-return kiMixFader input rows (mixOutputs iGain + bankChNum) per bus tab.
 BUS_HOST_GAIN_ICH: dict[str, int | None] = {
     "main 1-2": 18,
-    "line 3/4": 20,
-    "line 5/6": 22,
-    "line 7/8": 24,
-    "line 9/10": 26,
+    "line 3-4": 20,
+    "line 5-6": 22,
+    "line 7-8": 24,
+    "line 9-10": 26,
     "phones": 28,
     "reverb": None,
 }
@@ -52,10 +52,10 @@ _HOST_CHANNEL_LABELS: dict[int, tuple[str, str]] = {
 
 _HOST_NATIVE_BUS: dict[int, str | None] = {
     18: None,
-    20: "line 3/4",
-    22: "line 5/6",
-    24: "line 7/8",
-    26: "line 9/10",
+    20: "line 3-4",
+    22: "line 5-6",
+    24: "line 7-8",
+    26: "line 9-10",
     28: "phones",
 }
 
