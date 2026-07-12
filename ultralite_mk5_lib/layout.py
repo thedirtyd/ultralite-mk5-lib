@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from ultralite_mk5_lib.buses import MIX_BUS_MUTE_INDICES
+from ultralite_mk5_lib.buses import iter_active_mix_bus_rows
 from ultralite_mk5_lib.entities import entity_key_for_mix_fader
 from ultralite_mk5_lib.meters import iter_visible_meter_slots
 from ultralite_mk5_lib.mix_buses import MixMatrixColumn, mix_matrix_columns
@@ -43,25 +43,17 @@ class LayoutView:
         snap = self._snap()
         props = snap.get("props", {})
         mix_stereo = props.get("mix_stereo", {})
+        bus_rows = iter_active_mix_bus_rows(props.get("bus_stereo", {}))
         keys: list[str] = []
-        for bus_name in MIX_BUS_MUTE_INDICES:
-            if bus_name == "reverb":
+        for row in bus_rows:
+            if row.kind == "reverb":
                 continue
             for col in self.columns():
                 if _mix_stereo_hidden(col, mix_stereo):
                     continue
-                if col.kind == "host" and col.native_bus is not None and bus_name != col.native_bus:
+                if col.kind == "host" and col.native_och is not None and row.gain_och != col.native_och:
                     continue
-                if col.kind == "out":
-                    from ultralite_mk5_lib.entities import _BUS_FADER_TO_KEY
-
-                    key = _BUS_FADER_TO_KEY.get(MIX_BUS_MUTE_INDICES[bus_name])
-                    if key:
-                        keys.append(key)
-                    continue
-                if col.gain_ich is None:
-                    continue
-                keys.append(entity_key_for_mix_fader(bus_name, col.key))
+                keys.append(entity_key_for_mix_fader(row.name, col.key))
         return keys
 
     def visible_meter_keys(self) -> list[str]:

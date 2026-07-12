@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 
 from ultralite_mk5_lib.eq import (
+    BUS_EQ_BANDS,
     EQ_BAND_KEYS,
     EQMode,
     build_bus_eq_state,
@@ -31,7 +32,7 @@ from tests.helpers import assert_frame_header, minimal_props
 
 class EQCatalogTests(unittest.TestCase):
     def test_registry_has_expected_key_count(self) -> None:
-        self.assertEqual(len(EQ_BAND_KEYS), 32 + 21)
+        self.assertEqual(len(EQ_BAND_KEYS), 32 + len(BUS_EQ_BANDS))
 
     def test_input_eq_key_resolves(self) -> None:
         spec = resolve_eq_band("INPUTEQ_LINEIN03_B2")
@@ -109,6 +110,21 @@ class EQReportTests(unittest.TestCase):
         main_b1 = next(row for row in rows if row["key"] == "BUSEQ_MAIN0102_B1")
         self.assertEqual(main_b1["curve"], "lowshelf")
         self.assertFalse(main_b1["curve_locked"])
+
+    def test_bus_eq_state_splits_line_buses_when_mono(self) -> None:
+        props = minimal_props(
+            bus_stereo={2: 0, 4: 0, 6: 0, 8: 0},
+            bus_eq_mode={6: 0, 7: 0},
+            bus_eq_bypass={6: 0, 7: 0},
+            bus_eq_freq={6: 1000, 7: 2000},
+            bus_eq_gain={6: -1.0, 7: 2.0},
+            bus_eq_q={6: 1.0, 7: 1.0},
+        )
+        rows = build_bus_eq_state(props)
+        keys = {row["key"] for row in rows}
+        self.assertIn("BUSEQ_LINE07_B1", keys)
+        self.assertIn("BUSEQ_LINE08_B1", keys)
+        self.assertNotIn("BUSEQ_LINE0708_B1", keys)
 
 
 class EQProtocolTests(unittest.TestCase):

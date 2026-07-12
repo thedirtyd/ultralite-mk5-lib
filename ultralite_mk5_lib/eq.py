@@ -63,6 +63,8 @@ class EQBandSpec:
     display: str
     stereo_left_eq_index: int | None = None
     is_stereo_right: bool = False
+    output_stereo_left_eq_index: int | None = None
+    output_stereo_mode: Literal["pair", "mono_left", "mono_right"] | None = None
 
     @property
     def locked_mode(self) -> int | None:
@@ -77,14 +79,24 @@ class BusEQChannel:
 
     name: str
     eq_index: int
+    output_stereo_left_eq_index: int | None = None
+    output_stereo_mode: Literal["pair", "mono_left", "mono_right"] | None = None
 
 
 BUS_EQ_CHANNELS: tuple[BusEQChannel, ...] = (
     BusEQChannel("Main 1-2", 0),
-    BusEQChannel("Line 3-4", 2),
-    BusEQChannel("Line 5-6", 4),
-    BusEQChannel("Line 7-8", 6),
-    BusEQChannel("Line 9-10", 8),
+    BusEQChannel("Line 3/4", 2, output_stereo_left_eq_index=2, output_stereo_mode="pair"),
+    BusEQChannel("Line 3", 2, output_stereo_left_eq_index=2, output_stereo_mode="mono_left"),
+    BusEQChannel("Line 4", 3, output_stereo_left_eq_index=2, output_stereo_mode="mono_right"),
+    BusEQChannel("Line 5/6", 4, output_stereo_left_eq_index=4, output_stereo_mode="pair"),
+    BusEQChannel("Line 5", 4, output_stereo_left_eq_index=4, output_stereo_mode="mono_left"),
+    BusEQChannel("Line 6", 5, output_stereo_left_eq_index=4, output_stereo_mode="mono_right"),
+    BusEQChannel("Line 7/8", 6, output_stereo_left_eq_index=6, output_stereo_mode="pair"),
+    BusEQChannel("Line 7", 6, output_stereo_left_eq_index=6, output_stereo_mode="mono_left"),
+    BusEQChannel("Line 8", 7, output_stereo_left_eq_index=6, output_stereo_mode="mono_right"),
+    BusEQChannel("Line 9/10", 8, output_stereo_left_eq_index=8, output_stereo_mode="pair"),
+    BusEQChannel("Line 9", 8, output_stereo_left_eq_index=8, output_stereo_mode="mono_left"),
+    BusEQChannel("Line 10", 9, output_stereo_left_eq_index=8, output_stereo_mode="mono_right"),
     BusEQChannel("Phones", 10),
     BusEQChannel("Reverb", 11),
 )
@@ -172,6 +184,8 @@ def _build_bus_eq_bands() -> tuple[EQBandSpec, ...]:
                     flat_index=flat,
                     allowed_modes=modes,
                     display=f"{bus.name} B{band}",
+                    output_stereo_left_eq_index=bus.output_stereo_left_eq_index,
+                    output_stereo_mode=bus.output_stereo_mode,
                 )
             )
     return tuple(bands)
@@ -284,6 +298,23 @@ def input_eq_hidden_in_report(spec: EQBandSpec, props: dict[str, dict[int, Any]]
     return spec.is_stereo_right and input_pair_linked(spec, props)
 
 
+def output_pair_linked(spec: EQBandSpec, props: dict[str, dict[int, Any]]) -> bool:
+    if spec.block != "output" or spec.output_stereo_left_eq_index is None:
+        return False
+    bus_stereo = props.get("bus_stereo", {})
+    # CueMix defaults line output pairs to linked until koMixStereo is received.
+    return bool(bus_stereo.get(spec.output_stereo_left_eq_index, 1))
+
+
+def output_eq_hidden_in_report(spec: EQBandSpec, props: dict[str, dict[int, Any]]) -> bool:
+    if spec.block != "output" or spec.output_stereo_mode is None:
+        return False
+    linked = output_pair_linked(spec, props)
+    if linked:
+        return spec.output_stereo_mode in ("mono_left", "mono_right")
+    return spec.output_stereo_mode == "pair"
+
+
 def stereo_paired_input_eq_warning(spec: EQBandSpec, props: dict[str, dict[int, Any]]) -> str | None:
     if not input_eq_hidden_in_report(spec, props):
         return None
@@ -291,6 +322,12 @@ def stereo_paired_input_eq_warning(spec: EQBandSpec, props: dict[str, dict[int, 
         "input pair is in stereo mode; R channel EQ changes are stored "
         "but have no effect on audio until unlinked"
     )
+
+
+def stereo_paired_output_eq_warning(spec: EQBandSpec, props: dict[str, dict[int, Any]]) -> str | None:
+    if not output_eq_hidden_in_report(spec, props):
+        return None
+    return "output bus is stereo-linked; hidden mono EQ targets are ignored until unlinked"
 
 
 def _prop_value(props: dict[str, dict[int, Any]], prop_key: str, index: int) -> Any | None:
@@ -357,7 +394,12 @@ def build_input_eq_state(props: dict[str, dict[int, Any]]) -> list[dict[str, Any
 
 
 def build_bus_eq_state(props: dict[str, dict[int, Any]]) -> list[dict[str, Any]]:
-    return [_band_state(spec, props) for spec in BUS_EQ_BANDS]
+    rows: list[dict[str, Any]] = []
+    for spec in BUS_EQ_BANDS:
+        if output_eq_hidden_in_report(spec, props):
+            continue
+        rows.append(_band_state(spec, props))
+    return rows
 
 
 for _spec in EQ_BAND_REGISTRY.values():

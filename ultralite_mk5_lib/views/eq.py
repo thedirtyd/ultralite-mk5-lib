@@ -20,6 +20,7 @@ from ultralite_mk5_lib.eq import (
     prop_keys_for_block,
     q_applies,
     resolve_eq_band,
+    output_eq_hidden_in_report,
 )
 from ultralite_mk5_lib.protocol import (
     make_bus_eq_bypass_frame,
@@ -198,6 +199,8 @@ class EQBandHandle:
         self._write("bypass", bypass, wire_value=bypass)
 
     def _write(self, field: str, wire_arg: object, *, wire_value: object) -> None:
+        if output_eq_hidden_in_report(self._spec, self._props()):
+            return
         builders = _frame_builders(self._spec)
         prop_keys = self._prop_keys()
         idx = self._idx()

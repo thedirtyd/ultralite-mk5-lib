@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from ultralite_mk5_lib.buses import MIX_BUS_MUTE_INDICES
+from ultralite_mk5_lib.buses import MIX_BUS_MUTE_INDICES, resolve_bus_stereo_left_gain_och
 from ultralite_mk5_lib.entity_keys import mix_bus_fader_entity_key
 from ultralite_mk5_lib.inputs import INPUT_GAIN_CHANNELS, MIC_PRE_CHANNELS
 from ultralite_mk5_lib.meters import METER_SLOTS
@@ -126,7 +126,7 @@ def _build_registry() -> dict[str, EntityRef]:
             elif col.kind == "host":
                 if col.gain_ich is None:
                     continue
-                if col.native_bus is not None and bus_name != col.native_bus:
+                if col.native_och is not None and gain_och != col.native_och:
                     continue
                 _register(
                     registry,
@@ -240,6 +240,13 @@ SET_CHANNEL_MODE_ENTITY_KEYS: tuple[str, ...] = tuple(
                 and ref.gain_ich is not None
                 and ref.gain_ich <= STEREO_CAPABLE_MAX_GAIN_ICH
             ),
+            *(
+                key
+                for key, ref in ENTITY_REGISTRY.items()
+                if ref.kind == "bus_fader"
+                and ref.gain_och is not None
+                and 2 <= ref.gain_och <= 9
+            ),
         }
     )
 )
@@ -249,11 +256,11 @@ _MIX_FADER_TO_KEY: dict[tuple[int, int], str] = {
     for key, ref in ENTITY_REGISTRY.items()
     if ref.kind == "mix_fader" and ref.gain_ich is not None and ref.gain_och is not None
 }
-_BUS_FADER_TO_KEY: dict[int, str] = {
-    ref.gain_och: key
-    for key, ref in ENTITY_REGISTRY.items()
-    if ref.kind == "bus_fader" and ref.gain_och is not None
-}
+_BUS_FADER_TO_KEY: dict[int, str] = {}
+for _key, _ref in ENTITY_REGISTRY.items():
+    if _ref.kind != "bus_fader" or _ref.gain_och is None:
+        continue
+    _BUS_FADER_TO_KEY.setdefault(_ref.gain_och, _key)
 _COLUMN_KEY_TO_MIX_KEY: dict[tuple[str, str], str] = {
     (bus_name, col.key): mix_bus_fader_entity_key(bus_name, col.label)
     for bus_name in MIX_BUS_MUTE_INDICES
@@ -296,6 +303,26 @@ def resolve_stereo_input_gain_ich(key: str) -> int:
         f"{normalized!r} is not a mix input entity; "
         "use MIXINPUT_* or a MIXBUSFADER_* input crosspoint key"
     )
+
+
+def resolve_stereo_bus_gain_och(key: str) -> int:
+    """
+    Return output-bus left gain_och for output stereo-mode commands.
+
+    Accepts ``MIXBUSFADER_*_OUT`` keys for line output buses.
+    """
+    normalized = key.strip().upper()
+    ref = resolve_entity(normalized)
+    if ref.kind != "bus_fader" or ref.gain_och is None:
+        raise ValueError(
+            f"{normalized!r} is not an output-bus entity; use MIXBUSFADER_*_OUT keys"
+        )
+    try:
+        return resolve_bus_stereo_left_gain_och(ref.gain_och)
+    except ValueError as exc:
+        raise ValueError(
+            f"{normalized!r} is not a stereo-configurable line output bus"
+        ) from exc
 
 
 def display_name(key: str) -> str:

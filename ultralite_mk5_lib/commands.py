@@ -18,6 +18,7 @@ from ultralite_mk5_lib.solos import (
     resolve_clear_mix_solo_entity,
 )
 from ultralite_mk5_lib.views.transport import send_binary, send_bus_mute_local, send_prop_local
+from ultralite_mk5_lib.buses import output_bus_write_ignored
 
 if TYPE_CHECKING:
     from ultralite_mk5_lib.client import UltraLiteMk5
@@ -62,6 +63,8 @@ def apply_set_mute(device: UltraLiteMk5, key: str, value: str | None = None) -> 
 
 def apply_solo_output_bus(device: UltraLiteMk5, key: str) -> None:
     _, active_index = resolve_solo_bus_entity(key)
+    if output_bus_write_ignored(active_index, device.state.props.get("bus_stereo", {})):
+        return
     from ultralite_mk5_lib.buses import solo_bus_mute_indices
     from ultralite_mk5_lib.protocol import make_bus_mute_frame
 
@@ -102,10 +105,12 @@ def apply_set_pan(
 
 def apply_clear_mix_solo(device: UltraLiteMk5, key: str) -> None:
     """Clear all kiMixSolo flags on one mix output bus."""
-    from ultralite_mk5_lib.enums import Buses
+    from ultralite_mk5_lib.views.mix import BusView
 
     _, gain_och = resolve_clear_mix_solo_entity(key)
-    device.mix[Buses(gain_och)].clear_solos()
+    if output_bus_write_ignored(gain_och, device.state.props.get("bus_stereo", {})):
+        return
+    BusView(device, gain_och).clear_solos()
 
 
 def apply_set_input_48v(

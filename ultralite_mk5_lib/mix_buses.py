@@ -6,10 +6,9 @@ import math
 from dataclasses import dataclass, replace
 from typing import Any, Literal
 
-from ultralite_mk5_lib.buses import MIX_BUS_MUTE_INDICES, stereo_bus_muted
+from ultralite_mk5_lib.buses import MixBusRow, bus_row_muted, iter_active_mix_bus_rows
 from ultralite_mk5_lib.entity_keys import (
     mix_bus_entity_key_part,
-    mix_bus_fader_entity_key,
     mix_channel_entity_key_part,
     mix_input_entity_key,
 )
@@ -25,10 +24,10 @@ ColumnKind = Literal["input", "reverb", "host", "out"]
 # Host-return kiMixFader input rows (mixOutputs iGain + bankChNum) per bus tab.
 BUS_HOST_GAIN_ICH: dict[str, int | None] = {
     "main 1-2": 18,
-    "line 3-4": 20,
-    "line 5-6": 22,
-    "line 7-8": 24,
-    "line 9-10": 26,
+    "line 3/4": 20,
+    "line 5/6": 22,
+    "line 7/8": 24,
+    "line 9/10": 26,
     "phones": 28,
     "reverb": None,
 }
@@ -53,11 +52,20 @@ _HOST_CHANNEL_LABELS: dict[int, tuple[str, str]] = {
 
 _HOST_NATIVE_BUS: dict[int, str | None] = {
     18: None,
-    20: "line 3-4",
-    22: "line 5-6",
-    24: "line 7-8",
-    26: "line 9-10",
+    20: "line 3/4",
+    22: "line 5/6",
+    24: "line 7/8",
+    26: "line 9/10",
     28: "phones",
+}
+
+_HOST_NATIVE_OCH: dict[int, int | None] = {
+    18: None,
+    20: 2,
+    22: 4,
+    24: 6,
+    26: 8,
+    28: 10,
 }
 
 _SPDIF_NUM_CH = (2, 2, 2, 2, 0, 0)
@@ -76,6 +84,7 @@ class MixMatrixColumn:
     key: str
     gain_ich: int | None = None
     native_bus: str | None = None
+    native_och: int | None = None
     stereo_left_ich: int | None = None
     stereo_label: str | None = None
 
@@ -134,6 +143,7 @@ def _mix_column(
     gain_ich: int | None = None,
     *,
     native_bus: str | None = None,
+    native_och: int | None = None,
 ) -> MixMatrixColumn:
     return MixMatrixColumn(
         column_id,
@@ -142,6 +152,7 @@ def _mix_column(
         mix_channel_entity_key_part(label),
         gain_ich,
         native_bus,
+        native_och,
     )
 
 
@@ -212,6 +223,7 @@ def _mix_matrix_columns(
     for left_ich in _HOST_LEFT_ICH_TO_LABEL:
         left_label, right_label = _HOST_CHANNEL_LABELS[left_ich]
         native = _HOST_NATIVE_BUS[left_ich]
+        native_och = _HOST_NATIVE_OCH[left_ich]
         cols.append(
             _mix_column(
                 left_label,
@@ -219,6 +231,7 @@ def _mix_matrix_columns(
                 "host",
                 left_ich,
                 native_bus=native,
+                native_och=native_och,
             )
         )
         cols.append(
@@ -228,6 +241,7 @@ def _mix_matrix_columns(
                 "host",
                 left_ich + 1,
                 native_bus=native,
+                native_och=native_och,
             )
         )
     cols.append(_mix_column("Out", "bus-out", "out"))
@@ -377,6 +391,8 @@ def _column_entry(
     }
     if col.native_bus is not None:
         entry["native_bus"] = col.native_bus
+    if col.native_och is not None:
+        entry["native_och"] = col.native_och
     if col.stereo_left_ich is None:
         return entry
 
@@ -424,8 +440,11 @@ def build_mix_bus_fader_matrix(
             return None
         return mix_faders.get(mix_fader_index(gain_ich, gain_och))
 
+    bus_rows: tuple[MixBusRow, ...] = iter_active_mix_bus_rows(props.get("bus_stereo", {}))
     buses: list[dict[str, Any]] = []
-    for bus_name, gain_och in MIX_BUS_MUTE_INDICES.items():
+    for row in bus_rows:
+        bus_name = row.name
+        gain_och = row.gain_och
         faders: list[dict[str, Any]] = []
 
         for col in matrix_columns:
@@ -440,7 +459,7 @@ def build_mix_bus_fader_matrix(
                     )
                 )
             elif col.kind == "host":
-                if col.native_bus is not None and bus_name != col.native_bus:
+                if col.native_och is not None and gain_och != col.native_och:
                     faders.append({"hidden": True})
                 else:
                     assert col.gain_ich is not None
@@ -455,7 +474,7 @@ def build_mix_bus_fader_matrix(
                         )
                     )
             elif col.kind == "out":
-                bus_mute = stereo_bus_muted(bus_mute_indices, gain_och)
+                bus_mute = bus_row_muted(bus_mute_indices, row)
                 faders.append(
                     _fader_cell(
                         gain=bus_faders.get(gain_och),
@@ -463,12 +482,17 @@ def build_mix_bus_fader_matrix(
                     )
                 )
 
-        bus_mute = stereo_bus_muted(bus_mute_indices, gain_och)
+        bus_mute = bus_row_muted(bus_mute_indices, row)
         buses.append(
             {
                 "name": bus_name,
                 "key": mix_bus_entity_key_part(bus_name),
                 "gain_och": gain_och,
+                "kind": row.kind,
+                "pair_left_och": row.pair_left_och,
+                "pair_right_och": row.pair_right_och,
+                "stereo_linked": row.stereo_linked,
+                "is_pair_right": row.is_pair_right,
                 "mute": bus_mute,
                 "faders": faders,
             }

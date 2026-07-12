@@ -5,8 +5,16 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING, Union
 
-from ultralite_mk5_lib.buses import stereo_bus_muted
-from ultralite_mk5_lib.entities import resolve_entity, resolve_stereo_input_gain_ich
+from ultralite_mk5_lib.buses import (
+    output_bus_write_ignored,
+    resolve_bus_stereo_left_gain_och,
+    stereo_bus_muted,
+)
+from ultralite_mk5_lib.entities import (
+    resolve_entity,
+    resolve_stereo_bus_gain_och,
+    resolve_stereo_input_gain_ich,
+)
 from ultralite_mk5_lib.enums import Buses, InputPairs, Inputs
 from ultralite_mk5_lib.mix_buses import (
     NUM_MIX_INPUTS,
@@ -19,7 +27,9 @@ from ultralite_mk5_lib.levels import LevelCommand, prepare_level_command
 from ultralite_mk5_lib.mutes import MuteCommand, prepare_mute_command
 from ultralite_mk5_lib.pans import validate_mix_pan
 from ultralite_mk5_lib.protocol import (
+    make_bus_fader_frame,
     make_bus_mute_frame,
+    make_bus_stereo_frame,
     make_mix_fader_frame,
     make_mix_mute_frame,
     make_mix_pan_frame,
@@ -43,6 +53,11 @@ def _db_to_wire_gain(db: float) -> float:
 def _mix_stereo_linked(device: UltraLiteMk5, left_ich: int) -> bool:
     mix_stereo = device.state.props.get("mix_stereo", {})
     return bool(mix_stereo.get(left_ich & 0xFE, 0))
+
+
+def _bus_stereo_linked(device: UltraLiteMk5, left_och: int) -> bool:
+    bus_stereo = device.state.props.get("bus_stereo", {})
+    return bool(bus_stereo.get(resolve_bus_stereo_left_gain_och(left_och), 1))
 
 
 class CrosspointFader:
@@ -236,8 +251,8 @@ class OutFaderHandle:
         self.set_db(value)
 
     def set_db(self, value: float) -> None:
-        from ultralite_mk5_lib.protocol import make_bus_fader_frame
-
+        if self._write_ignored():
+            return
         gain = _db_to_wire_gain(value)
         frame = make_bus_fader_frame(self._gain_och, gain)
         send_binary(self._device, frame)
@@ -250,6 +265,8 @@ class OutFaderHandle:
         if key is None:
             raise ValueError(f"no bus out fader key for och={self._gain_och}")
         command = prepare_level_command(key, level)
+        if self._write_ignored():
+            return command
         send_binary(self._device, command.frame)
         send_prop_local(
             self._device,
@@ -266,9 +283,17 @@ class OutFaderHandle:
         if key is None:
             raise ValueError(f"no bus out fader key for och={self._gain_och}")
         command = prepare_mute_command(key, value)
+        if self._write_ignored():
+            return command
         send_binary(self._device, command.frame)
         send_bus_mute_local(self._device, command.index, command.muted)
         return command
+
+    def _write_ignored(self) -> bool:
+        return output_bus_write_ignored(
+            self._gain_och,
+            self._device.state.props.get("bus_stereo", {}),
+        )
 
 
 class BusChannelHandle:
@@ -338,10 +363,45 @@ class _StereoProxy:
         return StereoLinkHandle(self._mix._device, left_ich)
 
 
+class BusStereoLinkHandle:
+    """koMixStereo link for one output line bus pair."""
+
+    def __init__(self, device: UltraLiteMk5, left_och: int) -> None:
+        self._device = device
+        self._left_och = resolve_bus_stereo_left_gain_och(left_och)
+
+    @property
+    def linked(self) -> bool:
+        return _bus_stereo_linked(self._device, self._left_och)
+
+    @linked.setter
+    def linked(self, value: bool) -> None:
+        self.set_linked(value)
+
+    def set_linked(self, linked: bool) -> None:
+        frame = make_bus_stereo_frame(self._left_och, linked)
+        send_binary(self._device, frame)
+        send_prop_local(self._device, "bus_stereo", self._left_och, 1 if linked else 0)
+
+    def set_mode(self, mode: str) -> None:
+        mode_lower = mode.strip().lower()
+        if mode_lower not in ("stereo", "mono"):
+            raise ValueError(f"mode must be 'stereo' or 'mono', got {mode!r}")
+        self.set_linked(mode_lower == "stereo")
+
+
+class _BusStereoProxy:
+    def __init__(self, mix: MixView) -> None:
+        self._mix = mix
+
+    def __getitem__(self, bus_id: Buses | int) -> BusStereoLinkHandle:
+        return BusStereoLinkHandle(self._mix._device, int(bus_id))
+
+
 class BusView:
     """One mix output bus row."""
 
-    def __init__(self, device: UltraLiteMk5, bus: Buses) -> None:
+    def __init__(self, device: UltraLiteMk5, bus: Buses | int) -> None:
         self._device = device
         self._gain_och = int(bus)
 
@@ -359,18 +419,37 @@ class BusView:
     @property
     def muted(self) -> bool | None:
         bus_mute = self._device.state.props.get("bus_mute", {})
-        return stereo_bus_muted(bus_mute, self._gain_och)
+        if self._gain_och in (0, 10, 12):
+            return stereo_bus_muted(bus_mute, self._gain_och)
+        if 2 <= self._gain_och <= 9:
+            left_och = self._gain_och & 0xFE
+            if _bus_stereo_linked(self._device, left_och):
+                return stereo_bus_muted(bus_mute, left_och)
+            raw = bus_mute.get(self._gain_och)
+            return None if raw is None else bool(raw)
+        raw = bus_mute.get(self._gain_och)
+        return None if raw is None else bool(raw)
 
     @muted.setter
     def muted(self, value: bool) -> None:
         self.set_muted(value)
 
     def set_muted(self, muted: bool) -> None:
+        if output_bus_write_ignored(
+            self._gain_och,
+            self._device.state.props.get("bus_stereo", {}),
+        ):
+            return
         frame = make_bus_mute_frame(self._gain_och, muted)
         send_binary(self._device, frame)
         send_bus_mute_local(self._device, self._gain_och, muted)
 
     def solo(self) -> None:
+        if output_bus_write_ignored(
+            self._gain_och,
+            self._device.state.props.get("bus_stereo", {}),
+        ):
+            return
         from ultralite_mk5_lib.mutes import resolve_solo_bus_entity
         from ultralite_mk5_lib.entities import _BUS_FADER_TO_KEY
 
@@ -388,6 +467,11 @@ class BusView:
 
     def clear_solos(self) -> None:
         """Clear all kiMixSolo flags on this bus (CueMix clearBusSolos)."""
+        if output_bus_write_ignored(
+            self._gain_och,
+            self._device.state.props.get("bus_stereo", {}),
+        ):
+            return
         start = mix_fader_index(0, self._gain_och)
         payload = b"".join(
             make_mix_solo_frame(start + c, False) for c in range(NUM_MIX_INPUTS)
@@ -420,6 +504,10 @@ class MixView:
     def stereo(self) -> _StereoProxy:
         return _StereoProxy(self)
 
+    @property
+    def output_stereo(self) -> _BusStereoProxy:
+        return _BusStereoProxy(self)
+
     def fader_by_key(self, key: str) -> CrosspointFader | OutFaderHandle:
         ref = resolve_entity(key.strip().upper())
         if ref.kind == "mix_fader":
@@ -433,5 +521,11 @@ class MixView:
         raise ValueError(f"{key!r} is not a mix fader entity")
 
     def set_stereo_mode(self, key: str, mode: str) -> None:
-        gain_ich = resolve_stereo_input_gain_ich(key.strip().upper())
+        normalized = key.strip().upper()
+        try:
+            gain_ich = resolve_stereo_input_gain_ich(normalized)
+        except ValueError:
+            gain_och = resolve_stereo_bus_gain_och(normalized)
+            BusStereoLinkHandle(self._device, gain_och).set_mode(mode)
+            return
         StereoLinkHandle(self._device, gain_ich).set_mode(mode)

@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger(__name__)
 
 NotifyKind = Literal["meters", "props", "local"]
 
-from ultralite_mk5_lib.buses import MIX_BUS_MUTE_INDICES, stereo_bus_muted
+from ultralite_mk5_lib.buses import bus_row_muted, iter_active_mix_bus_rows
 from ultralite_mk5_lib.mix_buses import build_mix_bus_fader_matrix
 from ultralite_mk5_lib.outputs import build_output_monitoring
 from ultralite_mk5_lib.protocol import (
@@ -32,6 +32,7 @@ PROPERTY_TABLE: dict[int, tuple[str, str]] = {
     10: ("sample_rate", "int32"),
     11: ("clock_source", "byte"),
     1000: ("mix_stereo", "byte"),   # kiMixStereo — input channel stereo link
+    1001: ("bus_stereo", "byte"),   # koMixStereo — output bus stereo link
     1016: ("mix_fader", "float"),
     1017: ("mix_pan", "float"),
     1018: ("mix_solo", "byte"),
@@ -407,10 +408,11 @@ class DeviceState:
 
             bus_faders: dict[str, float | None] = {}
             bus_mutes: dict[str, bool | None] = {}
+            bus_rows = iter_active_mix_bus_rows(self._props.get("bus_stereo", {}))
             bus_mute_indices = self._props.get("bus_mute", {})
-            for name, index in MIX_BUS_MUTE_INDICES.items():
-                bus_faders[name] = self._scalar("bus_fader", index)
-                bus_mutes[name] = stereo_bus_muted(bus_mute_indices, index)
+            for row in bus_rows:
+                bus_faders[row.name] = self._scalar("bus_fader", row.gain_och)
+                bus_mutes[row.name] = bus_row_muted(bus_mute_indices, row)
 
             props_copy = {key: dict(indices) for key, indices in self._props.items()}
             optical_input_mode = props_copy.get("optical_mode", {}).get(0)

@@ -113,11 +113,11 @@ class ApplySoloCommandTests(unittest.TestCase):
 
     def test_apply_clear_mix_solo(self) -> None:
         device = MagicMock()
-        device.mix = MagicMock()
-        bus_view = MagicMock()
-        device.mix.__getitem__.return_value = bus_view
-        apply_clear_mix_solo(device, "MIXBUSFADER_REVERB_OUT")
-        device.mix.__getitem__.assert_called_once_with(Buses(MIX_BUS_MUTE_INDICES["reverb"]))
+        device.state = DeviceState()
+        with patch("ultralite_mk5_lib.views.mix.BusView") as mock_bus_view:
+            bus_view = mock_bus_view.return_value
+            apply_clear_mix_solo(device, "MIXBUSFADER_REVERB_OUT")
+        mock_bus_view.assert_called_once_with(device, MIX_BUS_MUTE_INDICES["reverb"])
         bus_view.clear_solos.assert_called_once()
 
 
