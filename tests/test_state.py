@@ -159,6 +159,19 @@ class DeviceStateTests(unittest.TestCase):
         state.set_prop_local("sample_rate", 0, 48000)
         self.assertEqual(state.last_notify_kind, "local")
 
+    def test_observer_exception_is_logged_not_propagated(self) -> None:
+        state = DeviceState()
+
+        def bad_observer() -> None:
+            raise RuntimeError("observer failed")
+
+        state.add_observer(bad_observer)
+        with self.assertLogs("ultralite_mk5_lib.state", level="ERROR") as logs:
+            state.apply_frame(inbound_int32_frame(K_SAMPLE_RATE_ID, 0, 48000))
+
+        self.assertTrue(any("observer failed" in line for line in logs.output))
+        self.assertEqual(state.props["sample_rate"][0], 48000)
+
 
 if __name__ == "__main__":
     unittest.main()

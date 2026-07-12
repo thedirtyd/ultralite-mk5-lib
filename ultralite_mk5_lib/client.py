@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from typing import TYPE_CHECKING
 
 import websocket
+
+_LOGGER = logging.getLogger(__name__)
+
+# CueMix closes the socket after ~2s without inbound messages (datastore.js).
+DEFAULT_RECEIVE_IDLE_TIMEOUT = 2.0
 
 from ultralite_mk5_lib.exceptions import NotConnectedError
 from ultralite_mk5_lib.protocol import build_ws_url
@@ -40,6 +46,7 @@ class UltraLiteMk5:
         connect: bool = True,
         auto_reconnect: bool = True,
         reconnect_interval: float = 1.0,
+        receive_idle_timeout: float = DEFAULT_RECEIVE_IDLE_TIMEOUT,
         on_connection_lost: Callable[[], None] | None = None,
         on_connection_restored: Callable[[], None] | None = None,
         on_message: Callable[[bytes], None] | None = None,
@@ -50,6 +57,7 @@ class UltraLiteMk5:
         self._timeout = timeout
         self.auto_reconnect = auto_reconnect
         self.reconnect_interval = reconnect_interval
+        self.receive_idle_timeout = receive_idle_timeout
         self._on_connection_lost = on_connection_lost
         self._on_connection_restored = on_connection_restored
         self._on_message = on_message
@@ -62,6 +70,7 @@ class UltraLiteMk5:
         self._loss_notified = False
         self._rx_thread: threading.Thread | None = None
         self._reconnect_thread: threading.Thread | None = None
+        self._last_recv_monotonic = 0.0
         self._mix = MixView(self)
         self._inputs = InputsView(self)
         self._outputs = OutputsView(self)
@@ -192,6 +201,7 @@ class UltraLiteMk5:
     def _open_socket(self) -> None:
         ws = websocket.create_connection(self._url, timeout=self._timeout)
         self._ws = ws
+        self._last_recv_monotonic = time.monotonic()
         self._rx_thread = threading.Thread(
             target=self._recv_loop,
             name="ultralite-mk5-rx",
@@ -226,7 +236,7 @@ class UltraLiteMk5:
             try:
                 self._on_connection_lost()
             except Exception:
-                pass
+                _LOGGER.exception("on_connection_lost callback failed")
 
     def _notify_connection_restored(self) -> None:
         self._connected_event.set()
@@ -237,7 +247,7 @@ class UltraLiteMk5:
             try:
                 self._on_connection_restored()
             except Exception:
-                pass
+                _LOGGER.exception("on_connection_restored callback failed")
 
     def _ensure_reconnect_thread(self) -> None:
         if self._reconnect_thread is not None and self._reconnect_thread.is_alive():
@@ -290,15 +300,27 @@ class UltraLiteMk5:
             try:
                 data = ws.recv()
             except websocket.WebSocketTimeoutException:
+                if (
+                    self.receive_idle_timeout > 0
+                    and time.monotonic() - self._last_recv_monotonic
+                    > self.receive_idle_timeout
+                ):
+                    _LOGGER.warning(
+                        "No inbound data for %.1fs; reconnecting",
+                        self.receive_idle_timeout,
+                    )
+                    break
                 continue
             except Exception:
                 break
+
+            self._last_recv_monotonic = time.monotonic()
 
             if self._on_message is not None:
                 try:
                     self._on_message(data)
                 except Exception:
-                    pass
+                    _LOGGER.exception("on_message callback failed")
 
             self.state.apply_frame(data)
 

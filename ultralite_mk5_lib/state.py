@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import struct
 import threading
 from collections.abc import Callable
 from typing import Any, Literal
+
+_LOGGER = logging.getLogger(__name__)
 
 NotifyKind = Literal["meters", "props", "local"]
 
@@ -370,7 +373,7 @@ class DeviceState:
             try:
                 callback()
             except Exception:
-                pass
+                _LOGGER.exception("DeviceState observer callback failed")
 
     def wait_for(
         self,
