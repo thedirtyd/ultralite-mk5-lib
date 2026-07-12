@@ -5,7 +5,12 @@ from __future__ import annotations
 import unittest
 
 from ultralite_mk5_lib.entities import (
+    _MIX_FADER_TO_KEY,
     display_name,
+    iter_canonical_bus_fader_keys,
+    iter_canonical_mix_fader_keys,
+    mix_fader_cell,
+    prefer_canonical_mix_fader_key,
     property_index,
     resolve_entity,
     resolve_stereo_input_gain_ich,
@@ -52,6 +57,44 @@ class ResolveStereoInputGainIchTests(unittest.TestCase):
 class DisplayNameTests(unittest.TestCase):
     def test_returns_cuemix_label(self) -> None:
         self.assertEqual(display_name("INPUTGAIN_MICIN01"), "Mic In 1")
+
+
+class CanonicalMixFaderKeyTests(unittest.TestCase):
+    def test_prefers_paired_line_bus_slug(self) -> None:
+        self.assertEqual(
+            prefer_canonical_mix_fader_key(
+                "MIXBUSFADER_LINE03_OPTICAL01",
+                "MIXBUSFADER_LINE0304_OPTICAL01",
+            ),
+            "MIXBUSFADER_LINE0304_OPTICAL01",
+        )
+
+    def test_prefers_numbered_host_key_over_host_lr(self) -> None:
+        self.assertEqual(
+            prefer_canonical_mix_fader_key(
+                "MIXBUSFADER_LINE0304_HOSTL",
+                "MIXBUSFADER_LINE0304_HOST03",
+            ),
+            "MIXBUSFADER_LINE0304_HOST03",
+        )
+
+    def test_canonical_iter_has_unique_wire_cells(self) -> None:
+        keys = iter_canonical_mix_fader_keys()
+        cells = {mix_fader_cell(key) for key in keys}
+        self.assertEqual(len(keys), len(cells))
+        self.assertIn("MIXBUSFADER_LINE0304_OPTICAL01", keys)
+        self.assertNotIn("MIXBUSFADER_LINE03_OPTICAL01", keys)
+
+    def test_internal_cell_map_uses_preferred_alias(self) -> None:
+        self.assertEqual(_MIX_FADER_TO_KEY[(10, 2)], "MIXBUSFADER_LINE0304_OPTICAL01")
+        self.assertEqual(_MIX_FADER_TO_KEY[(20, 2)], "MIXBUSFADER_LINE0304_HOST03")
+
+
+class CanonicalBusFaderKeyTests(unittest.TestCase):
+    def test_prefers_paired_line_bus_out_key(self) -> None:
+        keys = iter_canonical_bus_fader_keys()
+        self.assertIn("MIXBUSFADER_LINE0304_OUT", keys)
+        self.assertNotIn("MIXBUSFADER_LINE03_OUT", keys)
 
 
 if __name__ == "__main__":

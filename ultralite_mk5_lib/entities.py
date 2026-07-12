@@ -251,11 +251,63 @@ SET_CHANNEL_MODE_ENTITY_KEYS: tuple[str, ...] = tuple(
     )
 )
 
-_MIX_FADER_TO_KEY: dict[tuple[int, int], str] = {
-    (ref.gain_ich, ref.gain_och): key
-    for key, ref in ENTITY_REGISTRY.items()
-    if ref.kind == "mix_fader" and ref.gain_ich is not None and ref.gain_och is not None
-}
+def _split_mix_bus_fader_key(key: str) -> tuple[str, str]:
+    prefix = "MIXBUSFADER_"
+    if not key.startswith(prefix):
+        return "", ""
+    rest = key[len(prefix) :]
+    bus_part, _, channel_part = rest.partition("_")
+    return bus_part, channel_part
+
+
+_PAIRED_BUS_PARTS: frozenset[str] = frozenset(
+    _split_mix_bus_fader_key(mix_bus_fader_entity_key(bus_name, "Out"))[0]
+    for bus_name in MIX_BUS_MUTE_INDICES
+    if "-" in bus_name
+)
+
+
+def _mix_fader_key_preference_score(key: str) -> tuple[int, int, str]:
+    bus_part, channel_part = _split_mix_bus_fader_key(key)
+    host_lr = channel_part in {"HOSTL", "HOSTR"}
+    paired_bus = bus_part in _PAIRED_BUS_PARTS
+    return (
+        1 if host_lr else 0,
+        0 if paired_bus else 1,
+        key,
+    )
+
+
+def prefer_canonical_mix_fader_key(a: str, b: str) -> str:
+    """Return deterministic canonical key when two mix_fader aliases collide."""
+    a_ref = ENTITY_REGISTRY.get(a)
+    b_ref = ENTITY_REGISTRY.get(b)
+    if a_ref is None or b_ref is None:
+        raise ValueError("unknown mix_fader key")
+    if a_ref.kind != "mix_fader" or b_ref.kind != "mix_fader":
+        raise ValueError("prefer_canonical_mix_fader_key expects mix_fader keys")
+    if (
+        a_ref.gain_ich,
+        a_ref.gain_och,
+    ) != (
+        b_ref.gain_ich,
+        b_ref.gain_och,
+    ):
+        raise ValueError("mix_fader keys must target the same wire cell")
+    return min((a, b), key=_mix_fader_key_preference_score)
+
+
+_MIX_FADER_TO_KEY: dict[tuple[int, int], str] = {}
+for _key, _ref in ENTITY_REGISTRY.items():
+    if _ref.kind != "mix_fader" or _ref.gain_ich is None or _ref.gain_och is None:
+        continue
+    _cell = (_ref.gain_ich, _ref.gain_och)
+    _existing = _MIX_FADER_TO_KEY.get(_cell)
+    if _existing is None:
+        _MIX_FADER_TO_KEY[_cell] = _key
+        continue
+    _MIX_FADER_TO_KEY[_cell] = prefer_canonical_mix_fader_key(_existing, _key)
+
 _BUS_FADER_TO_KEY: dict[int, str] = {}
 for _key, _ref in ENTITY_REGISTRY.items():
     if _ref.kind != "bus_fader" or _ref.gain_och is None:
@@ -345,6 +397,24 @@ def property_index(key: str) -> tuple[str, int]:
     if prop is None:
         raise ValueError(f"{key!r} is a meter entity; use meter_slot() instead")
     return prop, ref.index
+
+
+def mix_fader_cell(key: str) -> tuple[int, int]:
+    """Return (gain_ich, gain_och) for a mix_fader entity key."""
+    ref = resolve_entity(key)
+    if ref.kind != "mix_fader" or ref.gain_ich is None or ref.gain_och is None:
+        raise ValueError(f"{key!r} is not a mix fader entity")
+    return ref.gain_ich, ref.gain_och
+
+
+def iter_canonical_mix_fader_keys() -> tuple[str, ...]:
+    """One deterministic mix_fader key per physical wire cell."""
+    return tuple(sorted(_MIX_FADER_TO_KEY.values()))
+
+
+def iter_canonical_bus_fader_keys() -> tuple[str, ...]:
+    """One deterministic bus_fader key per output bus row."""
+    return tuple(sorted(_BUS_FADER_TO_KEY.values()))
 
 
 def entity_key_for_mix_fader(bus_name: str, column_key: str) -> str:
